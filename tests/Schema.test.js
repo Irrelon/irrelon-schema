@@ -55,6 +55,136 @@ describe ("Schema", () => {
 	});
 	
 	describe("validate()", () => {
+		it("Can correctly validate positive shorthand primitive array", () => {
+			const schema = new Schema({
+				"arr": Array
+			});
+			
+			const result = schema.validate({
+				"arr": []
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative shorthand primitive array", () => {
+			const schema = new Schema({
+				"arr": Array
+			});
+			
+			const result = schema.validate({
+				"arr": {}
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate positive shorthand instance array", () => {
+			const schema = new Schema({
+				"arr": []
+			});
+			
+			const result = schema.validate({
+				"arr": []
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative shorthand instance array", () => {
+			const schema = new Schema({
+				"arr": []
+			});
+			
+			const result = schema.validate({
+				"arr": {}
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate positive shorthand instance typed array", () => {
+			const schema = new Schema({
+				"arr": [String]
+			});
+			
+			const result = schema.validate({
+				"arr": ["Foo", "Bar"]
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative shorthand instance typed array", () => {
+			const schema = new Schema({
+				"arr": [String]
+			});
+			
+			const result = schema.validate({
+				"arr": ["Foo", "Bar", 1]
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate positive longhand array", () => {
+			const schema = new Schema({
+				"arr": {
+					"type": Array
+				}
+			});
+			
+			const result = schema.validate({
+				"arr": ["Foo", "Bar"]
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative longhand array", () => {
+			const schema = new Schema({
+				"arr": {
+					"type": Array
+				}
+			});
+			
+			const result = schema.validate({
+				"arr": {}
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate positive longhand typed array", () => {
+			const schema = new Schema({
+				"arr": {
+					"type": Array,
+					"elementType": String
+				}
+			});
+			
+			const result = schema.validate({
+				"arr": ["Foo", "Bar"]
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative longhand typed array", () => {
+			const schema = new Schema({
+				"arr": {
+					"type": Array,
+					"elementType": String
+				}
+			});
+			
+			const result = schema.validate({
+				"arr": ["Foo", "Bar", 1]
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
 		it("Can fail when required data does not exist", () => {
 			expect(4);
 			
