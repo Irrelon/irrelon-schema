@@ -324,6 +324,37 @@ describe ("Schema", () => {
 			}, "Argument \"overallModel\" from the transform function was correct");
 		});
 		
+		it("Passes positive *Any (custom type)* validation", () => {
+			expect(8);
+			
+			const model = {};
+			let validModel;
+			
+			model.any = 1;
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.any, 1, "The model data was set successfully");
+			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
+			
+			model.any = "1";
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.any, "1", "The model data was set successfully");
+			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
+			
+			model.any = true;
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.any, true, "The model data was set successfully");
+			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
+			
+			model.any = null;
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.any, null, "The model data was set successfully");
+			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
+		});
+		
 		it("Passes positive string validation", () => {
 			expect(2);
 			

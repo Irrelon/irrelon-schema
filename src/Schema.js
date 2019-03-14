@@ -9,7 +9,8 @@ const {
 } = require("irrelon-path");
 const {
 	getTypePrimitive,
-	getTypeValidator
+	getTypeValidator,
+	typeAny
 } = require("./Validation");
 
 class Schema {
@@ -334,6 +335,10 @@ class Schema {
 				if (type instanceof Schema) {
 					return type.validate;
 				}
+				
+				if (type === Schema.Any.type) {
+					return typeAny;
+				}
 			});
 			
 			// Validate the model value against the schema type
@@ -372,6 +377,10 @@ class Schema {
 				const validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue.required, (type) => {
 					if (type instanceof Schema) {
 						return type.validate;
+					}
+					
+					if (type === Schema.Any.type) {
+						return typeAny;
 					}
 				});
 				
@@ -450,6 +459,10 @@ class Schema {
 		return values;
 	}
 }
+
+Schema.Any = {
+	"type": "Any"
+};
 
 // Give Schema's prototype the event emitter methods
 // and functionality

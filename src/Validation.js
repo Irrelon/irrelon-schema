@@ -115,10 +115,10 @@ const getTypeValidator = (value, isRequired, customHandler) => {
 		return composeRequired(typeObject, isRequired);
 	}
 	
-	return typeUnknown;
+	return typeAny;
 };
 
-const typeUnknown = () => {
+const typeAny = () => {
 	return {"valid": true};
 };
 
@@ -254,7 +254,7 @@ module.exports = {
 	typeBoolean,
 	typeArray,
 	typeObject,
-	typeUnknown,
+	typeAny,
 	validationFailed,
 	validateData
 };

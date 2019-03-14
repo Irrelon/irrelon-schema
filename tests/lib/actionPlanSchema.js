@@ -4,6 +4,7 @@ const {
 } = require("irrelon-path");
 
 const actionPlanSchema = new Schema({
+	"any": Schema.Any,
 	"string": String,
 	"number": Number,
 	"boolean": Boolean,
