@@ -317,6 +317,11 @@ class Schema {
 	}
 	
 	validate (model, currentPath, options = {"throwOnFail": false}) {
+		if (typeof currentPath === "object") {
+			options = currentPath;
+			currentPath = undefined;
+		}
+		
 		const schemaDefinition = this.normalised();
 		return this._validate(schemaDefinition, model, options.originalModel || model, currentPath, options);
 	}
