@@ -1,5 +1,5 @@
 const Emitter = require("irrelon-emitter");
-const Model = require("./Model");
+
 const {
 	"join": pathJoin,
 	"get": pathGet,
@@ -239,83 +239,6 @@ class Schema {
 		return finalObj;
 	}
 	
-	/**
-	 * Generates a model instance or a model constructor depending
-	 * on if data has been provided. If no data is provided, returns
-	 * a constructor. If data is provided, returns a model instance.
-	 * @param {Object=} data Optional data object used to seed the
-	 * model instance if provided.
-	 * @returns {*} The model constructor or model instance.
-	 */
-	model (data) {
-		if (data) {
-			return new Model(data, this);
-		}
-		
-		const thisSchemaInstance = this;
-		
-		return function (data) {
-			return new Model(data, thisSchemaInstance);
-		};
-	}
-	
-	find () {
-	
-	}
-	
-	findOne () {
-	
-	}
-	
-	/**
-	 * Uses the API instance to request a model instance based on
-	 * the id passed.
-	 * @param {*} id The ID of the model to get.
-	 * @param {Object=} options Optional options object.
-	 * @returns {Promise<*>} A promise to return the model
-	 * retrieved by id.
-	 */
-	findById (id, options = {"noCache": true}) {
-		return new Promise((resolve) => {
-			return this._api.get(`${this.endPoint()}/${id}`, {}, {
-				"noCache": true,
-				...options
-			}).then(({err, status, data}) => {
-				resolve({
-					err,
-					status,
-					"data": this.model(data)
-				});
-			}).catch((err) => {
-				throw err;
-			});
-		});
-	}
-	
-	updateOne () {
-	
-	}
-	
-	updateMany () {
-	
-	}
-	
-	removeOne () {
-	
-	}
-	
-	removeMany () {
-	
-	}
-	
-	insertOne () {
-	
-	}
-	
-	insertMany () {
-	
-	}
-	
 	validate (model, currentPath, options = {"throwOnFail": false}) {
 		if (typeof currentPath === "object") {
 			options = currentPath;
@@ -323,6 +246,23 @@ class Schema {
 		}
 		
 		const schemaDefinition = this.normalised();
+		
+		// Now check for any fields in the model that don't exist in the schema
+		for (const i in model) {
+			if (model.hasOwnProperty(i)) {
+				if (schemaDefinition[i] === undefined) {
+					// Found a field that should not exist in the model because it is not defined in the schema
+					const currentFullPath = pathJoin(currentPath, i);
+					
+					return {
+						"valid": false,
+						"path": currentFullPath,
+						"reason": `The field "${i}" in the path "${currentFullPath}" is not defined in the schema!`
+					};
+				}
+			}
+		}
+		
 		return this._validate(schemaDefinition, model, options.originalModel || model, currentPath, options);
 	}
 	
@@ -353,8 +293,11 @@ class Schema {
 			});
 		}
 		
+		const fieldsChecked = [];
+		
 		for (const i in currentSchema) {
 			if (currentSchema.hasOwnProperty(i)) {
+				fieldsChecked.push(i);
 				const currentFullPath = pathJoin(parentPath, i);
 				
 				// Get the value from the schema and the model for the

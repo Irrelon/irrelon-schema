@@ -635,5 +635,39 @@ describe ("Schema", () => {
 			assert.strictEqual(model.objectAny, setValue, "The model data was set successfully");
 			assert.strictEqual(validModel.valid, weWant, "The model was validated against the schema successfully");
 		});
+		
+		it("Fails when a field presented in the model data does not exist in the schema definition", () => {
+			const schema = new Schema({
+				"arr": Array
+			});
+			
+			const result = schema.validate({
+				"arr": [],
+				"foo": "bar"
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+			assert.strictEqual(result.path, "foo", "The schema failure path was correct");
+		});
+		
+		it("Fails when a field presented in the model data does not exist in the schema definition", () => {
+			const schema = new Schema({
+				"arr": Array,
+				"foo": new Schema({
+					"moo": Boolean
+				})
+			});
+			
+			const result = schema.validate({
+				"arr": [],
+				"foo": {
+					"moo": false,
+					"bar": true
+				}
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+			assert.strictEqual(result.path, "foo.bar", "The schema failure path was correct");
+		});
 	});
 });

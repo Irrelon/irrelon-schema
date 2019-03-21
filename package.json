@@ -1,8 +1,8 @@
 {
   "name": "irrelon-schema",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "A JSON schema validation module to give you realtime data test coverage.",
-  "main": "index.js",
+  "main": "./index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha ./tests/**/**.test.js",
     "build": "npm test && rimraf dist && babel ./src/*.js --out-dir dist && rm ./dist/*.test.js"
