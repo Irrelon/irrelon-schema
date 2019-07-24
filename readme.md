@@ -6,12 +6,12 @@ subject to change etc.
 
 ## Install
 ```bash
-npm i irrelon-schema
+npm i @irrelon/schema
 ```
 
 ## Usage
 ```js
-const Schema = require("irrelon-schema");
+const Schema = require("@irrelon/schema");
 
 // Lets set up a schema where the "_id" field
 // is a string that is required, and the "name"
