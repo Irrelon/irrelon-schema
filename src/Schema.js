@@ -10,7 +10,8 @@ const {
 const {
 	getTypePrimitive,
 	getTypeValidator,
-	typeAny
+	typeAny,
+	isPrimitive
 } = require("./Validation");
 
 class Schema {
@@ -275,7 +276,7 @@ class Schema {
 			});
 		}
 		
-		if (typeof currentSchema === "function") {
+		if (isPrimitive(currentSchema)) {
 			const validator = getTypeValidator(currentSchema, false, (type) => {
 				if (type instanceof Schema) {
 					return type.validate;

@@ -6,7 +6,7 @@ const actionPlanSchema = require("./lib/actionPlanSchema");
 describe ("Schema", () => {
 	describe("flattenValues()", () => {
 		it("Can flatten a schema definition to an object with key paths and primitive types as values", () => {
-			expect(11);
+			expect(12);
 			
 			const schema = new Schema({
 				"complex": [new Schema({
@@ -20,7 +20,8 @@ describe ("Schema", () => {
 					}),
 					"arr": [new Schema({
 						"foo": Boolean
-					})]
+					})],
+					"func": Function
 				})]
 			});
 			
@@ -28,6 +29,7 @@ describe ("Schema", () => {
 			
 			assert.strictEqual(result["complex"], Array, "complex type is correct");
 			assert.strictEqual(result["complex.$"], Schema, "complex.$ type is correct");
+			assert.strictEqual(result["complex.$.func"] instanceof Function, true, "complex.$.func type is correct");
 			assert.strictEqual(result["complex.$.name"], String, "complex.$.name type is correct");
 			assert.strictEqual(result["complex.$.meta"], Schema, "complex.$.meta type is correct");
 			assert.strictEqual(result["complex.$.meta.type"], String, "complex.$.meta.type type is correct");
@@ -55,6 +57,54 @@ describe ("Schema", () => {
 	});
 	
 	describe("validate()", () => {
+		it("Can correctly validate positive shorthand primitive function", () => {
+			const schema = new Schema({
+				"func": Function
+			});
+			
+			const result = schema.validate({
+				"func": () => {}
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative shorthand primitive function", () => {
+			const schema = new Schema({
+				"arr": Function
+			});
+			
+			const result = schema.validate({
+				"arr": {}
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate positive shorthand instance function", () => {
+			const schema = new Schema({
+				"arr": () => {}
+			});
+			
+			const result = schema.validate({
+				"arr": () => {}
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative shorthand instance function", () => {
+			const schema = new Schema({
+				"arr": () => {}
+			});
+			
+			const result = schema.validate({
+				"arr": {}
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+		});
+		
 		it("Can correctly validate positive shorthand primitive array", () => {
 			const schema = new Schema({
 				"arr": Array

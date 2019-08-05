@@ -49,7 +49,7 @@ const validationFailed = (path, value, expectedTypeName, options = {"throwOnFail
 	return {
 		"valid": false,
 		path,
-		"reason": `Expected {string} but value ${String(JSON.stringify(value)).substr(0, 10)} is type {${getType(value)}}`,
+		"reason": `Expected ${expectedTypeName} but value ${String(JSON.stringify(value)).substr(0, 10)} is type {${getType(value)}}`,
 		"originalModel": options.originalModel
 	};
 };
@@ -60,6 +60,10 @@ const getType = (value) => {
 	}
 	
 	return typeof value;
+};
+
+const isPrimitive = (value) => {
+	return value === Array || value === String || value === Number || value === Boolean || value === Object || value === Function;
 };
 
 const getTypePrimitive = (value) => {
@@ -81,6 +85,10 @@ const getTypePrimitive = (value) => {
 	
 	if (value instanceof Object || value === Object) {
 		return Object;
+	}
+	
+	if (value instanceof Function || value === Function) {
+		return Function;
 	}
 	
 	return typeof value;
@@ -111,8 +119,12 @@ const getTypeValidator = (value, isRequired, customHandler) => {
 		return composeRequired(typeBoolean, isRequired);
 	}
 	
-	if (value instanceof Object || value === Object) {
+	if ((value instanceof Object && !(value instanceof Function)) || value === Object) {
 		return composeRequired(typeObject, isRequired);
+	}
+	
+	if (value instanceof Function || value === Function) {
+		return composeRequired(typeFunction, isRequired);
 	}
 	
 	return typeAny;
@@ -133,6 +145,18 @@ const typeRequired = (value, path, options = {"throwOnFail": true}) => {
 			path,
 			"reason": `Schema violation, "${path}" is required and cannot be undefined or null`
 		};
+	}
+	
+	return {"valid": true};
+};
+
+const typeFunction = (value, path, options = {"throwOnFail": true}) => {
+	if (value === undefined || value === null) {
+		return {"valid": true};
+	}
+	
+	if (typeof value !== "function") {
+		return validationFailed(path, value, "function", options);
 	}
 	
 	return {"valid": true};
@@ -249,6 +273,7 @@ module.exports = {
 	getType,
 	getTypePrimitive,
 	getTypeValidator,
+	typeFunction,
 	typeString,
 	typeNumber,
 	typeBoolean,
@@ -256,5 +281,6 @@ module.exports = {
 	typeObject,
 	typeAny,
 	validationFailed,
-	validateData
+	validateData,
+	isPrimitive
 };
