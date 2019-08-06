@@ -116,9 +116,9 @@ class Schema {
 	
 	/**
 	 * Gets / sets the schema definition.
-	 * @param {String=} val The definition to set if provided.
-	 * @returns {String|*} If no val is provided, returns current
-	 * value, otherwise returns this.
+	 * @param {Object=} val The definition to set if provided.
+	 * @returns {Object|*} If no val is provided, returns current
+	 * value, otherwise returns this schema instance.
 	 */
 	definition (val) {
 		if (val === undefined) {
@@ -451,6 +451,51 @@ class Schema {
 
 Schema.Any = {
 	"type": "Any"
+};
+
+Schema.Integer = {
+	"type": "Number",
+	"format": "int32"
+};
+
+Schema.Long = {
+	"type": "Number",
+	"format": "int64"
+};
+
+Schema.Float = {
+	"type": "Number",
+	"format": "float"
+};
+
+Schema.Double = {
+	"type": "Number",
+	"format": "double"
+};
+
+Schema.Byte = {
+	"type": "String",
+	"format": "byte"
+};
+
+Schema.Binary = {
+	"type": "String",
+	"format": "binary"
+};
+
+Schema.Date = {
+	"type": "Date",
+	"format": "date"
+};
+
+Schema.DateTime = {
+	"type": "Date",
+	"format": "dateTime"
+};
+
+Schema.Password = {
+	"type": "String",
+	"format": "password"
 };
 
 // Give Schema's prototype the event emitter methods

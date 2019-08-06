@@ -178,9 +178,10 @@ const arraySchema = new Schema({
 
 ## Schema API
 
-### Schema()
+### Schema(definition, options)
 
-Instantiates a schema instance from the Schema class.
+Instantiates a schema instance from the Schema class, with the
+passed definition.
 
 #### Example
 ```js
@@ -221,21 +222,19 @@ You could then validate the above JSON against the schema via:
 const result = myUserSchema.validate(modelData);
 ```
 
-The ***result*** will now be an object containing three keys:
+The `result` will now be an object containing three keys:
 
 * valid (boolean)
 * path (string)
 * reason (string)
 
-If the validation failed, ***path*** and ***reason*** will contain data
+If the validation failed, `path` and `reason` will contain data
 that allows you to see what part of the schema failed validation
-and why. If the validation was successful, only ***valid*** will 
+and why. If the validation was successful, only `valid` will 
 contain a value (of true). 
 
-If you only want a boolean valid or not, use ***isValid()***. See
+If you only want a boolean valid or not, use `isValid()`. See
 below for all schema instance methods.
-
-#### Arguments
 
 ## Schema Instance API
 
@@ -344,3 +343,157 @@ representing each schema path and values representing the
 types that the schema specifies.
 
 
+## Special Types & OpenAPI 3 Compatibility
+
+The schema is defined by providing keys and types. On top of
+the regular JavaScript language primitives such as Number,
+String, Boolean etc Irrelon Schema provides some custom types
+that are useful when defining schemas designed to allow export
+to other specs like OpenAPI 3 but still map to JavaScript types
+internally.
+
+> All custom types are accessed via the Schema class definition
+as static properties of the class, NOT via the schema instance,
+e.g. `Schema.Any`, not `new Schema().Any`
+
+### Any
+Accessed via `Schema.Any`
+
+> To explicitly allow any data type to be stored.
+
+```js
+new Schema({
+	"canBeAnyValue": Schema.Any
+});
+```
+
+### Integer (int32)
+Accessed via `Schema.Integer`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript Number primitive. Irrelon Schema version
+2.x will validate any valid Number (including floats etc) as
+valid for this field type.
+
+```js
+new Schema({
+	"mustBeIntegerValue": Schema.Integer
+});
+```
+
+### Long (int64)
+Accessed via `Schema.Long`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript Number primitive. Irrelon Schema version
+2.x will validate any valid Number (including floats etc) as
+valid for this field type.
+
+```js
+new Schema({
+	"mustBeIntegerValue": Schema.Long
+});
+```
+
+### Float
+Accessed via `Schema.Float`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript Number primitive. Irrelon Schema version
+2.x will validate any valid Number (including integers etc) as
+valid for this field type.
+
+```js
+new Schema({
+	"mustBeFloatingPointValue": Schema.Float
+});
+```
+
+### Double
+Accessed via `Schema.Double`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript Number primitive. Irrelon Schema version
+2.x will validate any valid Number (including floats etc) as
+valid for this field type.
+
+```js
+new Schema({
+	"mustBeDoubleValue": Schema.Double
+});
+```
+
+### Byte
+Accessed via `Schema.Byte`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript String primitive. Irrelon Schema version
+2.x will validate any valid String as valid for this field type.
+
+```js
+new Schema({
+	"mustBeByteValue": Schema.Byte
+});
+```
+
+### Binary
+Accessed via `Schema.Binary`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript String primitive. Irrelon Schema version
+2.x will validate any valid String as valid for this field type.
+
+```js
+new Schema({
+	"mustBeBinaryValue": Schema.Binary
+});
+```
+
+### Date
+Accessed via `Schema.Date`
+
+> Schema.Date is the same as using JavaScript's primitive
+Date type, however, any date represented as a string value that
+does have an explicit time portion will have that time portion
+removed when converted to a JSON object.
+
+```js
+new Schema({
+	"mustBeDateValue": Schema.Date
+});
+```
+
+### DateTime
+Accessed via `Schema.DateTime`
+
+> Schema.DateTime is the same as using JavaScript's primitive
+Date type, however, any date represented as a string value that
+does not have an explicit time portion will be automatically
+augmented with a time portion reading 00:00:00 when converted to
+a JSON object.
+
+```js
+new Schema({
+	"mustBeDateTimeValue": Schema.DateTime
+});
+```
+
+### Password
+Accessed via `Schema.Password`
+
+> This type is for outputting correct OpenAPI 3 schema
+definitions only and has no different validation from a
+standard JavaScript String primitive. Irrelon Schema version
+2.x will validate any valid String as valid for this field type.
+
+```js
+new Schema({
+	"mustBePasswordValue": Schema.Password
+});
+```
