@@ -7,6 +7,7 @@ const {
 	"flattenValues": pathFlattenValues,
 	"numberToWildcard": pathNumberToWildcard
 } = require("irrelon-path");
+
 const {
 	getTypePrimitive,
 	getTypeValidator,
@@ -251,6 +252,18 @@ class Schema {
 		
 		return finalObj;
 	}
+	
+	/**
+	 * NOT YET WRITTEN, DO NOT USE
+	 * Casts a model to the correct types if possible.
+	 * @param {Object|Array} model The model to cast against the
+	 * schema.
+	 * @returns {Object|Array} The new model, with values cast
+	 * to the correct types based on the schema definition.
+	 */
+	cast = (model) => {
+		return model;
+	};
 	
 	/**
 	 * Checks if the passed model is valid or not and returns
