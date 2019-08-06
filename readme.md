@@ -11,7 +11,7 @@ npm i @irrelon/schema
 
 ## Usage
 ```js
-const Schema = require("@irrelon/schema");
+const {Schema} = require("@irrelon/schema");
 
 // Lets set up a schema where the "_id" field
 // is a string that is required, and the "name"
