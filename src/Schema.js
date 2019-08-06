@@ -134,41 +134,6 @@ class Schema {
 	}
 	
 	/**
-	 * Gets / sets the schema endpoint. This is used to handle
-	 * automatically communicating via REST standards for CRUD
-	 * calls.
-	 * @param {String=} val The endpoint to set if provided.
-	 * @returns {String|*} If no val is provided, returns current
-	 * value, otherwise returns this.
-	 */
-	endPoint (val) {
-		if (val === undefined) {
-			return this._endPoint;
-		}
-		
-		this._endPoint = val;
-		return this;
-	}
-	
-	/**
-	 * Gets / sets the schema api instance. This instance must provide
-	 * an API interface so .get() .post() .put() .delete() etc must be
-	 * provided by this instance to allow communications with a REST
-	 * server which is specified by a call to endPoint().
-	 * @param {String=} val The definition to set if provided.
-	 * @returns {String|*} If no val is provided, returns current
-	 * value, otherwise returns this.
-	 */
-	api (val) {
-		if (val === undefined) {
-			return this._api;
-		}
-		
-		this._api = val;
-		return this;
-	}
-	
-	/**
 	 * Gets / sets the normalised schema definition object. Normalised
 	 * schema definitions are definitions that have been transformed so
 	 * that all key values conform to the internal schema standard rather
