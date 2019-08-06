@@ -43,9 +43,6 @@ class Schema {
 		if (options.helpers) {
 			this.helpers(options.helpers);
 		}
-		
-		// Bind validate, it should only run against our instance
-		this.validate = this.validate.bind(this);
 	}
 	
 	/**
@@ -59,6 +56,12 @@ class Schema {
 		}
 	}
 	
+	/**
+	 * Get or set helpers defined on this schema instance.
+	 * @param {Object} obj An object containing helper functions.
+	 * @returns {Schema|Object} Either the schema instance (on set)
+	 * or the helper object (on get).
+	 */
 	helpers (obj) {
 		if (obj === undefined) {
 			return this._helpers;
@@ -68,6 +71,15 @@ class Schema {
 		return this;
 	}
 	
+	/**
+	 * Call a helper by its id with the passed model and any
+	 * other arguments you wish to pass.
+	 * @param {String} id The id (field name) of the helper function to call.
+	 * @param {Object|Array} model The model to pass to the first argument of the
+	 * helper function.
+	 * @param {*} args Any further args you wish to pass to the helper function.
+	 * @returns {*} The response from the helper function.
+	 */
 	helper (id, model, ...args) {
 		return this._helpers[id](model, ...args);
 	}
@@ -240,7 +252,33 @@ class Schema {
 		return finalObj;
 	}
 	
-	validate (model, currentPath, options = {"throwOnFail": false}) {
+	/**
+	 * Checks if the passed model is valid or not and returns
+	 * a boolean true or false.
+	 * @param {Object|Array} model The model to validate against the
+	 * schema.
+	 * @param {Object=} options The options object.
+	 * @returns {Boolean} True if validation was succcessful, false
+	 * if validation failed.
+	 */
+	isValid = (model, options) => {
+		return this.validate(model, options).valid;
+	};
+	
+	/**
+	 * Validates model data against the schema.
+	 * @param {Object|Array} model The model to validate against the
+	 * schema.
+	 * @param {String=} currentPath Optional, can be passed as
+	 * options argument or a string currentPath.
+	 * @param {Object=} options The options object.
+	 * @returns {{
+	 * 	   valid: Boolean,
+	 * 	   path: String,
+	 * 	   reason: String
+	 * }} An object with data about how the validation passed or failed.
+	 */
+	validate = (model, currentPath, options = {"throwOnFail": false}) => {
 		if (typeof currentPath === "object") {
 			options = currentPath;
 			currentPath = undefined;
@@ -248,11 +286,13 @@ class Schema {
 		
 		const schemaDefinition = this.normalised();
 		
-		// Now check for any fields in the model that don't exist in the schema
+		// Now check for any fields in the model that
+		// don't exist in the schema
 		for (const i in model) {
 			if (model.hasOwnProperty(i)) {
 				if (schemaDefinition[i] === undefined) {
-					// Found a field that should not exist in the model because it is not defined in the schema
+					// Found a field that should not exist in the
+					// model because it is not defined in the schema
 					const currentFullPath = pathJoin(currentPath, i);
 					
 					return {
@@ -265,9 +305,9 @@ class Schema {
 		}
 		
 		return this._validate(schemaDefinition, model, options.originalModel || model, currentPath, options);
-	}
+	};
 	
-	_validate (currentSchema, currentModel, originalModel, parentPath = "", options = {"throwOnFail": false}) {
+	_validate = (currentSchema, currentModel, originalModel, parentPath = "", options = {"throwOnFail": false}) => {
 		if (currentSchema instanceof Schema) {
 			// Get the definition for this schema
 			return currentSchema.validate(currentModel, parentPath, {
@@ -372,7 +412,7 @@ class Schema {
 		return {
 			"valid": true
 		};
-	}
+	};
 	
 	/**
 	 * Converts the schema definition to a flat object with keys

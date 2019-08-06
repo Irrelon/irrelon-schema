@@ -83,7 +83,7 @@ const getTypePrimitive = (value) => {
 		return Boolean;
 	}
 	
-	if (value instanceof Object || value === Object) {
+	if ((value instanceof Object && !(value instanceof Function)) || value === Object) {
 		return Object;
 	}
 	

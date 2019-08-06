@@ -1,4 +1,4 @@
-const Schema = require("../../src/Schema");
+const Schema = require("../../dist/Schema");
 const {
 	get
 } = require("irrelon-path");

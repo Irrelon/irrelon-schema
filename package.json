@@ -1,11 +1,11 @@
 {
   "name": "@irrelon/schema",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A JSON schema validation module to give you realtime data test coverage.",
   "main": "./index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha ./tests/**/**.test.js",
-    "build": "npm test && rimraf dist && babel ./src/*.js --out-dir dist && rm ./dist/*.test.js"
+    "build": "rimraf dist && babel ./src/*.js --out-dir dist && npm test"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +19,7 @@
     "@babel/preset-env": "^7.3.1",
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.0.0",
-    "eslint-config-irrelon": "^1.0.0",
+    "eslint-config-irrelon": "^1.0.9",
     "mocha": "^6.0.2",
     "mocha-expect": "^1.0.2",
     "nyc": "^13.3.0",

@@ -1,5 +1,5 @@
 const {describe, it, expect, assert} = require("mocha-expect");
-const Schema = require("../src/Schema");
+const Schema = require("../dist/Schema");
 
 const actionPlanSchema = require("./lib/actionPlanSchema");
 
@@ -29,7 +29,7 @@ describe ("Schema", () => {
 			
 			assert.strictEqual(result["complex"], Array, "complex type is correct");
 			assert.strictEqual(result["complex.$"], Schema, "complex.$ type is correct");
-			assert.strictEqual(result["complex.$.func"] instanceof Function, true, "complex.$.func type is correct");
+			assert.strictEqual(result["complex.$.func"], Function, "complex.$.func type is correct");
 			assert.strictEqual(result["complex.$.name"], String, "complex.$.name type is correct");
 			assert.strictEqual(result["complex.$.meta"], Schema, "complex.$.meta type is correct");
 			assert.strictEqual(result["complex.$.meta.type"], String, "complex.$.meta.type type is correct");

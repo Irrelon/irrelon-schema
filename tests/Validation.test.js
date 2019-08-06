@@ -1,7 +1,7 @@
 const {describe, it, expect, assert} = require("mocha-expect");
 const {
 	validateData
-} = require("../src/Validation");
+} = require("../dist/Validation");
 
 describe("Validation", () => {
 	describe("validateData()", () => {
