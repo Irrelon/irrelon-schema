@@ -1,10 +1,42 @@
 const {describe, it, expect, assert} = require("mocha-expect");
 const {
 	validateData
-} = require("../dist/Validation");
+} = require("../src/Validation");
 
 describe("Validation", () => {
 	describe("validateData()", () => {
+		it("Passes positive function validation", () => {
+			expect(3);
+			
+			const result = validateData("func", {
+				"func": Function
+			}, {
+				"func": () => {}
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, true, "The validation result was correct");
+		});
+		
+		it("Passes negative function validation", () => {
+			expect(3);
+			
+			const result = validateData("func", {
+				"func": Function
+			}, {
+				"func": {}
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, false, "The validation result was correct");
+		});
+		
 		it("Passes positive string validation", () => {
 			expect(3);
 			

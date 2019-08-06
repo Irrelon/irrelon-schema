@@ -5,6 +5,7 @@ const {
 
 const actionPlanSchema = new Schema({
 	"any": Schema.Any,
+	"integer": Schema.Integer,
 	"string": String,
 	"number": Number,
 	"boolean": Boolean,

@@ -11,9 +11,10 @@ const {
 const {
 	getTypePrimitive,
 	getTypeValidator,
-	typeAny,
 	isPrimitive
 } = require("./Validation");
+
+const customTypes = require("./customTypes");
 
 class Schema {
 	/**
@@ -166,6 +167,10 @@ class Schema {
 		const finalObj = {};
 		
 		Object.keys(def).map((key) => {
+			if (def[key] === undefined) {
+				throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot create a field that has an undefined shape. This usually occurs if you have passed an undefined value to the field.`);
+			}
+			
 			if (def[key] instanceof Schema) {
 				finalObj[key] = {
 					"type": def[key],
@@ -191,16 +196,29 @@ class Schema {
 					throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot create a field without a type. If you are trying to define an object that contains fields and types, use a new Schema instance. If you just want to define the field as an object with any contents, use an Object primitive.`);
 				}
 				
-				// If we have a default value, make sure it validates against the field type
-				if (def[key].default !== undefined) {
-					// TODO
-					// Validate the default
+				// If we have a transform value, make sure it is a function
+				if (def[key].transform !== undefined && typeof def[key].transform !== "function") {
+					throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": The "transform" field must be a function.`);
 				}
 				
-				// If we have a transform value, make sure it is a function
-				if (def[key].transform !== undefined) {
-					if (typeof def[key].transform !== "function") {
-						throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": The "transform" field must be a function.`);
+				// If we have a default value, make sure we don't also have required:true
+				if (def[key].default !== undefined && def[key].required === true) {
+					throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot specify both required:true AND a default since default values are only applied when a field is not explicitly specified.`);
+				}
+				
+				// If we have a default value, make sure it validates against the field type
+				if (def[key].default !== undefined) {
+					// Validate the default
+					const validator = getTypeValidator(def[key].type, false, (type) => {
+						if (type instanceof Schema) {
+							return type.validate;
+						}
+					});
+					
+					const validatorResult = validator(def[key].default);
+					
+					if (!validatorResult.valid) {
+						throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot specify a default value of type ${validatorResult.actualType} when the field type is ${validatorResult.expectedType}.`);
 					}
 				}
 				
@@ -299,10 +317,6 @@ class Schema {
 				if (type instanceof Schema) {
 					return type.validate;
 				}
-				
-				if (type === Schema.Any.type) {
-					return typeAny;
-				}
 			});
 			
 			// Validate the model value against the schema type
@@ -344,10 +358,6 @@ class Schema {
 				const validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue.required, (type) => {
 					if (type instanceof Schema) {
 						return type.validate;
-					}
-					
-					if (type === Schema.Any.type) {
-						return typeAny;
 					}
 				});
 				
@@ -427,54 +437,9 @@ class Schema {
 	}
 }
 
-Schema.Any = {
-	"type": "Any"
-};
-
-Schema.Integer = {
-	"type": "Number",
-	"format": "int32"
-};
-
-Schema.Long = {
-	"type": "Number",
-	"format": "int64"
-};
-
-Schema.Float = {
-	"type": "Number",
-	"format": "float"
-};
-
-Schema.Double = {
-	"type": "Number",
-	"format": "double"
-};
-
-Schema.Byte = {
-	"type": "String",
-	"format": "byte"
-};
-
-Schema.Binary = {
-	"type": "String",
-	"format": "binary"
-};
-
-Schema.Date = {
-	"type": "Date",
-	"format": "date"
-};
-
-Schema.DateTime = {
-	"type": "Date",
-	"format": "dateTime"
-};
-
-Schema.Password = {
-	"type": "String",
-	"format": "password"
-};
+Object.entries(customTypes).map(([key, value]) => {
+	Schema[key] = value;
+});
 
 // Give Schema's prototype the event emitter methods
 // and functionality

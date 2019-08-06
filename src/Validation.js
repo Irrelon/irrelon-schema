@@ -1,3 +1,4 @@
+const customTypes = require("./customTypes");
 const {
 	"get": pathGet,
 	"furthest": pathFurthest
@@ -21,7 +22,7 @@ const compose = (...args) => {
 
 const composeRequired = (validator, isRequired) => {
 	if (isRequired) {
-		const composedFunc = compose(typeRequired, validator);
+		const composedFunc = compose(typeValidatorRequired, validator);
 		
 		return (...args) => {
 			const result = composedFunc(...args);
@@ -32,31 +33,45 @@ const composeRequired = (validator, isRequired) => {
 				}
 			}
 			
-			return {
-				"valid": true
-			};
+			return validationSucceeded();
 		};
 	}
 	
 	return validator;
 };
 
-const validationFailed = (path, value, expectedTypeName, options = {"throwOnFail": false, "typeDetectedOverride": ""}) => {
+const validationFailed = (path, value, expectedTypeName, options = {"throwOnFail": false, "detectedTypeOverride": ""}) => {
+	const actualTypeName = options.detectedTypeOverride ? options.detectedTypeOverride : getType(value);
+	
 	if (options.throwOnFail) {
-		throw new Error(`Schema violation, "${path}" has schema type ${expectedTypeName} and cannot be set to value ${String(JSON.stringify(value)).substr(0, 10)} of type ${options.typeDetectedOverride ? options.typeDetectedOverride : getType(value)}`);
+		throw new Error(`Schema violation, "${path}" has schema type ${expectedTypeName} and cannot be set to value ${String(JSON.stringify(value)).substr(0, 10)} of type ${actualTypeName}`);
 	}
 	
 	return {
 		"valid": false,
-		path,
-		"reason": `Expected ${expectedTypeName} but value ${String(JSON.stringify(value)).substr(0, 10)} is type {${getType(value)}}`,
-		"originalModel": options.originalModel
+		"expectedType": expectedTypeName,
+		"actualType": actualTypeName,
+		"reason": `Expected ${expectedTypeName} but value ${String(JSON.stringify(value)).substr(0, 10)} is type {${actualTypeName}}`,
+		"originalModel": options.originalModel,
+		path
 	};
+};
+
+const validationSucceeded = () => {
+	return {"valid": true};
 };
 
 const getType = (value) => {
 	if (value instanceof Array) {
 		return "array";
+	}
+	
+	if (value instanceof Object && !(value instanceof Function)) {
+		return "object";
+	}
+	
+	if (value instanceof Function) {
+		return "function";
 	}
 	
 	return typeof value;
@@ -104,37 +119,55 @@ const getTypeValidator = (value, isRequired, customHandler) => {
 	}
 	
 	if (value instanceof Array || value === Array) {
-		return composeRequired(typeArray, isRequired);
+		return composeRequired(typeValidatorArray, isRequired);
 	}
 	
 	if (value instanceof String || value === String) {
-		return composeRequired(typeString, isRequired);
+		return composeRequired(typeValidatorString, isRequired);
 	}
 	
 	if (value instanceof Number || value === Number) {
-		return composeRequired(typeNumber, isRequired);
+		return composeRequired(typeValidatorNumber, isRequired);
 	}
 	
 	if (value instanceof Boolean || value === Boolean) {
-		return composeRequired(typeBoolean, isRequired);
+		return composeRequired(typeValidatorBoolean, isRequired);
 	}
 	
 	if ((value instanceof Object && !(value instanceof Function)) || value === Object) {
-		return composeRequired(typeObject, isRequired);
+		return composeRequired(typeValidatorObject, isRequired);
 	}
 	
 	if (value instanceof Function || value === Function) {
-		return composeRequired(typeFunction, isRequired);
+		return composeRequired(typeValidatorFunction, isRequired);
 	}
 	
-	return typeAny;
+	for (const [customTypeKey, customTypeValue] of Object.entries(customTypes)) {
+		if (value === customTypeValue) {
+			if (typeof customTypeValue.validator === "function") {
+				// There is a custom validator function here, call it and use the return value
+				// to make either success or failure messages
+				return composeRequired(typeValidatorCustom(customTypeValue.validator, customTypeKey), isRequired);
+			}
+			
+			// There is no custom validator function, use the custom type's type field and
+			// use a built-in validator for it if any exists
+			const primitiveHandler = getTypeValidator(customTypeValue.type, isRequired, customHandler);
+			
+			// Check if a primitive handler was found and if so, return that
+			if (primitiveHandler) return primitiveHandler;
+		}
+	}
+	
+	// No matching handlers were found, use an "Any" type validator (always returns true validation)
+	return composeRequired(typeValidatorAny, isRequired);
 };
 
-const typeAny = () => {
-	return {"valid": true};
+const typeValidatorAny = () => {
+	return validationSucceeded();
 };
 
-const typeRequired = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorRequired = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
 		if (options.throwOnFail) {
 			throw new Error(`Schema violation, "${path}" is required and cannot be undefined or null`);
@@ -147,79 +180,97 @@ const typeRequired = (value, path, options = {"throwOnFail": true}) => {
 		};
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
-const typeFunction = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorCustom = (customValidator, customTypeName) => {
+	return (value, path, options = {"throwOnFail": true}) => {
+		if (value === undefined || value === null) {
+			return validationSucceeded();
+		}
+		
+		const customValidatorReturnValue = customValidator(value, path, options, validationSucceeded, validationFailed);
+		
+		if (customValidatorReturnValue === true) {
+			return validationSucceeded();
+		}
+		
+		if (customValidatorReturnValue === false) {
+			return validationFailed(path, value, customTypeName, options);
+		}
+	};
+};
+
+const typeValidatorFunction = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
-		return {"valid": true};
+		return validationSucceeded();
 	}
 	
 	if (typeof value !== "function") {
 		return validationFailed(path, value, "function", options);
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
-const typeString = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorString = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
-		return {"valid": true};
+		return validationSucceeded();
 	}
 	
 	if (typeof value !== "string") {
 		return validationFailed(path, value, "string", options);
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
-const typeNumber = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorNumber = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
-		return {"valid": true};
+		return validationSucceeded();
 	}
 	
 	if (typeof value !== "number") {
 		return validationFailed(path, value, "number", options);
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
-const typeBoolean = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorBoolean = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
-		return {"valid": true};
+		return validationSucceeded();
 	}
 	
 	if (typeof value !== "boolean") {
 		return validationFailed(path, value, "boolean", options);
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
-const typeArray = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorArray = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
-		return {"valid": true};
+		return validationSucceeded();
 	}
 	
 	if (!(value instanceof Array)) {
 		return validationFailed(path, value, "array<any>", options);
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
-const typeObject = (value, path, options = {"throwOnFail": true}) => {
+const typeValidatorObject = (value, path, options = {"throwOnFail": true}) => {
 	if (value === undefined || value === null) {
-		return {"valid": true};
+		return validationSucceeded();
 	}
 	
 	if (typeof value !== "object") {
 		return validationFailed(path, value, "object", options);
 	}
 	
-	return {"valid": true};
+	return validationSucceeded();
 };
 
 const validateData = (path, schema, data, options = {"throwOnFail": true}) => {
@@ -273,13 +324,13 @@ module.exports = {
 	getType,
 	getTypePrimitive,
 	getTypeValidator,
-	typeFunction,
-	typeString,
-	typeNumber,
-	typeBoolean,
-	typeArray,
-	typeObject,
-	typeAny,
+	typeValidatorFunction,
+	typeValidatorString,
+	typeValidatorNumber,
+	typeValidatorBoolean,
+	typeValidatorArray,
+	typeValidatorObject,
+	typeValidatorAny,
 	validationFailed,
 	validateData,
 	isPrimitive

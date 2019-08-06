@@ -2,6 +2,8 @@
 
 var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
 
+var _slicedToArray2 = _interopRequireDefault(require("@babel/runtime/helpers/slicedToArray"));
+
 var _typeof2 = _interopRequireDefault(require("@babel/runtime/helpers/typeof"));
 
 var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
@@ -22,8 +24,9 @@ var _require = require("irrelon-path"),
 var _require2 = require("./Validation"),
     getTypePrimitive = _require2.getTypePrimitive,
     getTypeValidator = _require2.getTypeValidator,
-    typeAny = _require2.typeAny,
     isPrimitive = _require2.isPrimitive;
+
+var customTypes = require("./customTypes");
 
 var Schema =
 /*#__PURE__*/
@@ -39,6 +42,9 @@ function () {
     var _options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
     (0, _classCallCheck2.default)(this, Schema);
+    (0, _defineProperty2.default)(this, "cast", function (model) {
+      return model;
+    });
     (0, _defineProperty2.default)(this, "isValid", function (model, options) {
       return _this.validate(model, options).valid;
     });
@@ -92,10 +98,6 @@ function () {
           if (type instanceof Schema) {
             return type.validate;
           }
-
-          if (type === Schema.Any.type) {
-            return typeAny;
-          }
         }); // Validate the model value against the schema type
 
         return validator(currentModel, parentPath, {
@@ -133,10 +135,6 @@ function () {
           var _validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue.required, function (type) {
             if (type instanceof Schema) {
               return type.validate;
-            }
-
-            if (type === Schema.Any.type) {
-              return typeAny;
             }
           }); // Validate the model value against the schema type
 
@@ -291,9 +289,9 @@ function () {
     }
     /**
      * Gets / sets the schema definition.
-     * @param {String=} val The definition to set if provided.
-     * @returns {String|*} If no val is provided, returns current
-     * value, otherwise returns this.
+     * @param {Object=} val The definition to set if provided.
+     * @returns {Object|*} If no val is provided, returns current
+     * value, otherwise returns this schema instance.
      */
 
   }, {
@@ -306,45 +304,6 @@ function () {
       this._definition = val; // Convert definition into normalised version
 
       this.normalised(this.normalise(val));
-      return this;
-    }
-    /**
-     * Gets / sets the schema endpoint. This is used to handle
-     * automatically communicating via REST standards for CRUD
-     * calls.
-     * @param {String=} val The endpoint to set if provided.
-     * @returns {String|*} If no val is provided, returns current
-     * value, otherwise returns this.
-     */
-
-  }, {
-    key: "endPoint",
-    value: function endPoint(val) {
-      if (val === undefined) {
-        return this._endPoint;
-      }
-
-      this._endPoint = val;
-      return this;
-    }
-    /**
-     * Gets / sets the schema api instance. This instance must provide
-     * an API interface so .get() .post() .put() .delete() etc must be
-     * provided by this instance to allow communications with a REST
-     * server which is specified by a call to endPoint().
-     * @param {String=} val The definition to set if provided.
-     * @returns {String|*} If no val is provided, returns current
-     * value, otherwise returns this.
-     */
-
-  }, {
-    key: "api",
-    value: function api(val) {
-      if (val === undefined) {
-        return this._api;
-      }
-
-      this._api = val;
       return this;
     }
     /**
@@ -385,6 +344,10 @@ function () {
       var parentPath = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
       var finalObj = {};
       Object.keys(def).map(function (key) {
+        if (def[key] === undefined) {
+          throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot create a field that has an undefined shape. This usually occurs if you have passed an undefined value to the field."));
+        }
+
         if (def[key] instanceof Schema) {
           finalObj[key] = {
             "type": def[key],
@@ -408,17 +371,30 @@ function () {
           if (!def[key].type) {
             // Throw as we require a type for an object definition
             throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot create a field without a type. If you are trying to define an object that contains fields and types, use a new Schema instance. If you just want to define the field as an object with any contents, use an Object primitive."));
+          } // If we have a transform value, make sure it is a function
+
+
+          if (def[key].transform !== undefined && typeof def[key].transform !== "function") {
+            throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": The \"transform\" field must be a function."));
+          } // If we have a default value, make sure we don't also have required:true
+
+
+          if (def[key].default !== undefined && def[key].required === true) {
+            throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot specify both required:true AND a default since default values are only applied when a field is not explicitly specified."));
           } // If we have a default value, make sure it validates against the field type
 
 
-          if (def[key].default !== undefined) {} // TODO
-          // Validate the default
-          // If we have a transform value, make sure it is a function
+          if (def[key].default !== undefined) {
+            // Validate the default
+            var validator = getTypeValidator(def[key].type, false, function (type) {
+              if (type instanceof Schema) {
+                return type.validate;
+              }
+            });
+            var validatorResult = validator(def[key].default);
 
-
-          if (def[key].transform !== undefined) {
-            if (typeof def[key].transform !== "function") {
-              throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": The \"transform\" field must be a function."));
+            if (!validatorResult.valid) {
+              throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot specify a default value of type ").concat(validatorResult.actualType, " when the field type is ").concat(validatorResult.expectedType, "."));
             }
           }
 
@@ -435,13 +411,12 @@ function () {
       return finalObj;
     }
     /**
-     * Checks if the passed model is valid or not and returns
-     * a boolean true or false.
-     * @param {Object|Array} model The model to validate against the
+     * NOT YET WRITTEN, DO NOT USE
+     * Casts a model to the correct types if possible.
+     * @param {Object|Array} model The model to cast against the
      * schema.
-     * @param {Object=} options The options object.
-     * @returns {Boolean} True if validation was succcessful, false
-     * if validation failed.
+     * @returns {Object|Array} The new model, with values cast
+     * to the correct types based on the schema definition.
      */
 
   }, {
@@ -482,9 +457,13 @@ function () {
   return Schema;
 }();
 
-Schema.Any = {
-  "type": "Any"
-}; // Give Schema's prototype the event emitter methods
+Object.entries(customTypes).map(function (_ref) {
+  var _ref2 = (0, _slicedToArray2.default)(_ref, 2),
+      key = _ref2[0],
+      value = _ref2[1];
+
+  Schema[key] = value;
+}); // Give Schema's prototype the event emitter methods
 // and functionality
 
 Emitter(Schema);

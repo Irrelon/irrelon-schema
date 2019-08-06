@@ -4,6 +4,37 @@ const Schema = require("../dist/Schema");
 const actionPlanSchema = require("./lib/actionPlanSchema");
 
 describe ("Schema", () => {
+	it("Will throw an error if both required:true and a default value are specified", () => {
+		expect(1);
+		
+		try {
+			const schema = new Schema({
+				"data": {
+					"type": String,
+					"required": true,
+					"default": false
+				}
+			});
+		} catch (e) {
+			assert.ok(true, "The call threw an error");
+		}
+	});
+	
+	it("Will throw an error if a default value does not pass type validation for the specified field", () => {
+		expect(1);
+		
+		try {
+			const schema = new Schema({
+				"data": {
+					"type": String,
+					"default": 3245 // This is a number not a string so should throw an error!
+				}
+			});
+		} catch (e) {
+			assert.ok(true, "The call threw an error");
+		}
+	});
+	
 	describe("flattenValues()", () => {
 		it("Can flatten a schema definition to an object with key paths and primitive types as values", () => {
 			expect(12);
@@ -402,6 +433,37 @@ describe ("Schema", () => {
 			validModel = actionPlanSchema.validate(model);
 			
 			assert.strictEqual(model.any, null, "The model data was set successfully");
+			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
+		});
+		
+		it("Passes positive *Integer (custom type)* validation", () => {
+			expect(8);
+			
+			const model = {};
+			let validModel;
+			
+			model.integer = 1;
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.integer, 1, "The model data was set successfully");
+			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
+			
+			model.integer = "1";
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.integer, "1", "The model data was set successfully");
+			assert.strictEqual(validModel.valid, false, "The model was validated against the schema successfully");
+			
+			model.integer = true;
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.integer, true, "The model data was set successfully");
+			assert.strictEqual(validModel.valid, false, "The model was validated against the schema successfully");
+			
+			model.integer = null;
+			validModel = actionPlanSchema.validate(model);
+			
+			assert.strictEqual(model.integer, null, "The model data was set successfully");
 			assert.strictEqual(validModel.valid, true, "The model was validated against the schema successfully");
 		});
 		
