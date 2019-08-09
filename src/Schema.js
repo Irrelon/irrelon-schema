@@ -6,7 +6,7 @@ const {
 	"set": pathSet,
 	"flattenValues": pathFlattenValues,
 	"numberToWildcard": pathNumberToWildcard
-} = require("irrelon-path");
+} = require("@irrelon/path");
 
 const {
 	getTypePrimitive,
@@ -32,14 +32,6 @@ class Schema {
 		
 		if (options.primaryKey) {
 			this.primaryKey(options.primaryKey);
-		}
-		
-		if (options.endPoint) {
-			this.endPoint(options.endPoint);
-		}
-	
-		if (options.api) {
-			this.api(options.api);
 		}
 		
 		if (options.helpers) {
@@ -130,7 +122,7 @@ class Schema {
 		this._definition = val;
 		
 		// Convert definition into normalised version
-		this.normalised(this.normalise(val));
+		this.normalised(this.normalise(this._definition));
 		return this;
 	}
 	
@@ -157,6 +149,9 @@ class Schema {
 	/**
 	 * Converts multiple ways to declare a schema into a normalised
 	 * structure so we can rely on the structure being consistent.
+	 * This converts all schema field definitions to long-hand object
+	 * based ones so instead of {"name": String} the field would be
+	 * converted to {"name": {"type": String}}.
 	 * @param {Object} def The schema definition to normalise.
 	 * @param {String=} parentPath The path to normalise. Usually
 	 * left not specified so that the definition object can be fully
@@ -246,6 +241,17 @@ class Schema {
 	 */
 	cast = (model) => {
 		return model;
+	};
+	
+	add = (obj) => {
+		if (!obj) return;
+		
+		// Take the new definition and add it to our existing one
+		this._definition = {...this._definition, ...obj};
+		
+		// Convert definition into normalised version
+		this.normalised(this.normalise(this._definition));
+		return this;
 	};
 	
 	/**
