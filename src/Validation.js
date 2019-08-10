@@ -2,7 +2,7 @@ const customTypes = require("./customTypes");
 const {
 	"get": pathGet,
 	"furthest": pathFurthest
-} = require("irrelon-path");
+} = require("@irrelon/path");
 
 /**
  * Creates a function that calls each function passed as an

@@ -35,6 +35,67 @@ describe ("Schema", () => {
 		}
 	});
 	
+	describe("normalise()", () => {
+		it("Will normalise schemas with nested schemas and recursive schemas", () => {
+			const UserSchema = new Schema({
+				"name": String,
+				"age": Number
+			});
+			
+			const SectionSchema = new Schema({
+				"type": {
+					"type": String,
+					"required": true
+				},
+				"data": Schema.Any,
+				"arr": [String],
+				"anotherSchemaInAnArray": [UserSchema]
+			});
+			
+			SectionSchema.add({"sections": [SectionSchema]}, "");
+			
+			const normalisedDefinition = SectionSchema.normalised();
+			
+			assert.strictEqual(typeof normalisedDefinition, "object", "Correct type");
+			assert.deepEqual(normalisedDefinition.type, {
+				"type": String,
+				"required": true
+			}, "Correct type");
+			assert.deepEqual(normalisedDefinition.data, Schema.Any, "Correct type");
+			assert.deepEqual(normalisedDefinition.arr, {
+				"type": Array,
+				"elementType": String
+			}, "Correct type");
+			assert.deepEqual(normalisedDefinition.anotherSchemaInAnArray, {
+				"type": Array,
+				"elementType": UserSchema
+			}, "Correct type");
+			assert.deepEqual(normalisedDefinition.sections, {
+				"type": Array,
+				"elementType": SectionSchema
+			}, "Correct type");
+		});
+	});
+	
+	describe("add()", () => {
+		it("Can add a new part to the schema", () => {
+			const SectionSchema = new Schema({
+				"type": {
+					"type": String,
+					"required": true
+				},
+				"data": Schema.Any,
+				"arr": [String]
+			});
+			
+			SectionSchema.add({"sections": [SectionSchema]}, "");
+			
+			const result = SectionSchema.flattenValues();
+			
+			assert.strictEqual(result["sections.$"], SectionSchema, "sections type is correct");
+		});
+	});
+	
 	describe("flattenValues()", () => {
 		it("Can flatten a schema definition to an object with key paths and primitive types as values", () => {
 			expect(12);
@@ -114,7 +175,7 @@ describe ("Schema", () => {
 		
 		it("Can correctly validate positive shorthand instance function", () => {
 			const schema = new Schema({
-				"arr": () => {}
+				"arr": Function
 			});
 			
 			const result = schema.validate({
@@ -126,7 +187,7 @@ describe ("Schema", () => {
 		
 		it("Can correctly validate negative shorthand instance function", () => {
 			const schema = new Schema({
-				"arr": () => {}
+				"arr": Function
 			});
 			
 			const result = schema.validate({

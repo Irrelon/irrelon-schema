@@ -28,7 +28,7 @@
   "dependencies": {
     "@babel/polyfill": "^7.2.5",
     "@babel/runtime": "^7.3.1",
-    "irrelon-emitter": "^2.0.16",
-    "irrelon-path": "^2.0.0"
+    "@irrelon/path": "^2.1.1",
+    "irrelon-emitter": "^2.0.16"
   }
 }

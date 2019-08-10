@@ -8,7 +8,7 @@ var _typeof2 = _interopRequireDefault(require("@babel/runtime/helpers/typeof"));
 
 var customTypes = require("./customTypes");
 
-var _require = require("irrelon-path"),
+var _require = require("@irrelon/path"),
     pathGet = _require["get"],
     pathFurthest = _require["furthest"];
 /**
