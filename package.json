@@ -4,8 +4,8 @@
   "description": "A JSON schema validation module to give you realtime data test coverage.",
   "main": "./index.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha ./tests/**/**.test.js",
-    "build": "rimraf dist && babel ./src/*.js --out-dir dist && npm test"
+    "test": "npm run build && NODE_ENV=test mocha ./tests/**/**.test.js",
+    "build": "rimraf dist && babel ./src/*.js --out-dir dist"
   },
   "keywords": [],
   "author": "",

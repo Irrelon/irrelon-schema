@@ -50,4 +50,13 @@ const customTypes = {
 	}
 };
 
-module.exports = customTypes;
+const isCustomType = (val) => {
+	return Object.values(customTypes).some((customType) => {
+		return val === customType;
+	});
+};
+
+module.exports = {
+	...customTypes,
+	isCustomType
+};

@@ -1,5 +1,5 @@
 const {describe, it, expect, assert} = require("mocha-expect");
-const Schema = require("../dist/Schema");
+const {Schema} = require("../dist/Schema");
 
 const actionPlanSchema = require("./lib/actionPlanSchema");
 
@@ -49,7 +49,10 @@ describe ("Schema", () => {
 				},
 				"data": Schema.Any,
 				"arr": [String],
-				"anotherSchemaInAnArray": [UserSchema]
+				"anotherSchemaInAnArray": [UserSchema],
+				"aBareObjectTypeInAnArray": [{
+					"name": String
+				}]
 			});
 			
 			SectionSchema.add({"sections": [SectionSchema]}, "");
@@ -78,7 +81,7 @@ describe ("Schema", () => {
 	});
 	
 	describe("add()", () => {
-		it("Can add a new part to the schema", () => {
+		it("Can add a new recursive part to the schema and flattening the schema will produce non-recursive results", () => {
 			const SectionSchema = new Schema({
 				"type": {
 					"type": String,
@@ -92,7 +95,13 @@ describe ("Schema", () => {
 			
 			const result = SectionSchema.flattenValues();
 			
-			assert.strictEqual(result["sections.$"], SectionSchema, "sections type is correct");
+			assert.strictEqual(result["type"], String, "Field type is correct");
+			assert.strictEqual(result["data"], Schema.Any, "Field type is correct");
+			assert.strictEqual(result["arr"], Array, "Field type is correct");
+			assert.strictEqual(result["arr.$"], String, "Field type is correct");
+			assert.strictEqual(result["sections"], Array, "Field type is correct");
+			assert.strictEqual(result["sections.$"], SectionSchema, "Field type is correct");
+			assert.strictEqual(result["sections.$.type"], undefined, "Field type is correct");
 		});
 	});
 	
@@ -120,16 +129,16 @@ describe ("Schema", () => {
 			const result = schema.flattenValues();
 			
 			assert.strictEqual(result["complex"], Array, "complex type is correct");
-			assert.strictEqual(result["complex.$"], Schema, "complex.$ type is correct");
+			assert.strictEqual(result["complex.$"] instanceof Schema, true, "complex.$ type is correct");
 			assert.strictEqual(result["complex.$.func"], Function, "complex.$.func type is correct");
 			assert.strictEqual(result["complex.$.name"], String, "complex.$.name type is correct");
-			assert.strictEqual(result["complex.$.meta"], Schema, "complex.$.meta type is correct");
+			assert.strictEqual(result["complex.$.meta"] instanceof Schema, true, "complex.$.meta type is correct");
 			assert.strictEqual(result["complex.$.meta.type"], String, "complex.$.meta.type type is correct");
 			assert.strictEqual(result["complex.$.meta.index"], Number, "complex.$.meta.type type is correct");
-			assert.strictEqual(result["complex.$.other"], Schema, "complex.$.other type is correct");
+			assert.strictEqual(result["complex.$.other"] instanceof Schema, true, "complex.$.other type is correct");
 			assert.strictEqual(result["complex.$.other.stuff"], Array, "complex.$.other.stuff type is correct");
 			assert.strictEqual(result["complex.$.arr"], Array, "complex.$.arr type is correct");
-			assert.strictEqual(result["complex.$.arr.$"], Schema, "complex.$.arr.$ type is correct");
+			assert.strictEqual(result["complex.$.arr.$"] instanceof Schema, true, "complex.$.arr.$ type is correct");
 			assert.strictEqual(result["complex.$.arr.$.foo"], Boolean, "complex.$.arr.$.foo type is correct");
 		});
 	});

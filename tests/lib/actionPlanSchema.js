@@ -1,7 +1,7 @@
-const Schema = require("../../dist/Schema");
+const {Schema} = require("../../dist/Schema");
 const {
 	get
-} = require("irrelon-path");
+} = require("@irrelon/path");
 
 const actionPlanSchema = new Schema({
 	"any": Schema.Any,

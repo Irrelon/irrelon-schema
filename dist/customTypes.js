@@ -1,5 +1,9 @@
 "use strict";
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+var _objectSpread2 = _interopRequireDefault(require("@babel/runtime/helpers/objectSpread"));
+
 var customTypes = {
   "Any": {
     "type": "Any",
@@ -44,4 +48,13 @@ var customTypes = {
     "format": "password"
   }
 };
-module.exports = customTypes;
+
+var isCustomType = function isCustomType(val) {
+  return Object.values(customTypes).some(function (customType) {
+    return val === customType;
+  });
+};
+
+module.exports = (0, _objectSpread2.default)({}, customTypes, {
+  isCustomType: isCustomType
+});

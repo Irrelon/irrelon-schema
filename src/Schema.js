@@ -15,107 +15,7 @@ const {
 } = require("./Validation");
 
 const customTypes = require("./customTypes");
-
-class FieldType {
-	constructor (fieldType, parentPath = "", key = "") {
-		if (fieldType === undefined) {
-			throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot create a field that has an undefined shape. This usually occurs if you have passed an undefined value to the field.`);
-		}
-		
-		// Handle fieldType of type "Schema"
-		if (fieldType instanceof Schema) {
-			this.assignTypeAttributes({
-				"type": fieldType
-			}, parentPath, key);
-			
-			return this;
-		}
-		
-		// Handle fieldType which is a primitive
-		if (isPrimitive(fieldType)) {
-			const defObj = {
-				"type": fieldType
-			};
-			
-			if (fieldType instanceof Array) {
-				// Handle array instance
-				defObj.elementType = fieldType[0];
-			}
-			
-			this.assignTypeAttributes(defObj, parentPath, key);
-			
-			return this;
-		}
-		
-		// At this point we should have a long-hand field definition
-		// object. If we don't, throw an error!
-		if (typeof fieldType !== "object") {
-			throw new Error("Schema definition invalid, expected a long-hand field definition object but couldn't understand the format.");
-		}
-		
-		// Handle fieldType that is a long-hand definition
-		this.assignTypeAttributes(fieldType, parentPath, key);
-		
-		return this;
-	}
-	
-	attributeVal = (val, defaultVal) => {
-		return val !== undefined ? val : defaultVal;
-	};
-	
-	assignTypeAttributes = (obj, parentPath, key) => {
-		const finalType = {
-			// Define values or defaults
-			"type": this.attributeVal(obj.type, Schema.Any),
-			"required": this.attributeVal(obj.required, false),
-			"default": this.attributeVal(obj.default, undefined),
-			"transform": this.attributeVal(obj.transform, undefined),
-			"elementType": this.attributeVal(obj.elementType, undefined)
-		};
-		
-		finalType.validator = this.attributeVal(obj.validator, getTypeValidator(finalType.type, false, (type) => {
-			if (type instanceof Schema) {
-				return type.validate;
-			}
-		}));
-		
-		if (!finalType.type) {
-			// Throw as we require a type for an object definition
-			throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot create a field without a type. If you are trying to define an object that contains fields and types, use a new Schema instance. If you just want to define the field as an object with any contents, use an Object primitive.`);
-		}
-		
-		// If we have a transform value, make sure it is a function
-		if (finalType.transform !== undefined && typeof finalType.transform !== "function") {
-			throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": The "transform" field must be a function.`);
-		}
-		
-		// If we have a default value, make sure we don't also have required:true
-		if (finalType.default !== undefined && finalType.required === true) {
-			throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot specify both required:true AND a default since default values are only applied when a field is not explicitly specified.`);
-		}
-		
-		// If we have a default value, make sure it validates against the field type
-		if (finalType.default !== undefined) {
-			// Validate the default
-			const validator = getTypeValidator(finalType.type, false, (type) => {
-				if (type instanceof Schema) {
-					return type.validate;
-				}
-			});
-			
-			const validatorResult = validator(finalType.default);
-			
-			if (!validatorResult.valid) {
-				throw new Error(`Schema definition invalid at path "${pathJoin(parentPath, key)}": Cannot specify a default value of type ${validatorResult.actualType} when the field type is ${validatorResult.expectedType}.`);
-			}
-		}
-		
-		// Finally, assign the new attributes to the "this" object
-		Object.entries(finalType).map(([entryKey, entryVal]) => {
-			this[entryKey] = entryVal;
-		});
-	}
-}
+const {isCustomType} = require("./customTypes");
 
 class Schema {
 	/**
@@ -537,53 +437,17 @@ class Schema {
 	 * types that the schema specifies.
 	 * @returns {Object} The flattened schema definition.
 	 */
-	flattenValues () {
+	flattenValues (parentPath = "", values = {}, visited = []) {
 		const def = this.normalised();
-		const values = {};
+		
+		// Add our own schema instance to the visited array
+		// so we don't recurse if we find it nested in our
+		// own definition (we don't want infinite recursion!).
+		visited.push(this);
 		
 		Object.entries(def).map(([key, val]) => {
-			values[key] = pathFlattenValues(val, values, key, {
-				"transformRead": (dataIn) => {
-					if (dataIn instanceof Schema) {
-						// Return the definition object
-						return dataIn;
-					}
-					
-					return dataIn.type;
-				},
-				"transformKey": pathNumberToWildcard,
-				"transformWrite": (dataOut) => {
-					const primitive = getTypePrimitive(dataOut);
-					
-					if (dataOut.constructor && dataOut.constructor.name === "Schema") {
-						return Schema;
-					}
-					
-					return primitive;
-				}
-			});
+			flatten(val, compoundKey(parentPath, key), values, visited);
 		});
-		
-		/*pathFlattenValues(def, values, "", {
-			"transformRead": (dataIn) => {
-				if (dataIn instanceof Schema) {
-					// Return the definition object
-					return dataIn;
-				}
-				
-				return dataIn;
-			},
-			"transformKey": pathNumberToWildcard,
-			"transformWrite": (dataOut) => {
-				const primitive = getTypePrimitive(dataOut);
-				
-				if (dataOut.constructor && dataOut.constructor.name === "Schema") {
-					return Schema;
-				}
-				
-				return primitive;
-			}
-		});*/
 		
 		return values;
 	}
@@ -593,8 +457,97 @@ Object.entries(customTypes).map(([key, value]) => {
 	Schema[key] = value;
 });
 
+const compoundKey = (...keys) => {
+	return keys.reduce((finalKey, key) => {
+		if (finalKey) {
+			finalKey += `.${key}`;
+			return finalKey;
+		}
+		
+		return key;
+	}, "");
+};
+
+const isSchemaPrimitive = (val) => {
+	return val === Schema;
+};
+
+const isSchemaInstance = (val) => {
+	if (!val) return false;
+	if (!val.constructor) return false;
+	if (val.constructor.name !== "Schema") return false;
+	
+	return true;
+};
+
+const flatten = (def, parentPath = "", values = {}, visited = []) => {
+	// Check if the def is a non-flatten type (a custom type)
+	if (isCustomType(def)) {
+		values[parentPath] = def;
+		return values;
+	}
+	
+	if (isPrimitive(def)) {
+		values[parentPath] = def;
+		return values;
+	}
+	
+	const {type, elementType} = def;
+	
+	// Check for array instance
+	if (type === Array) {
+		values[parentPath] = Array;
+		
+		const valueKey = compoundKey(parentPath, "$");
+		
+		if (elementType) {
+			// Recurse into the array data
+			flatten({"type": elementType}, valueKey, values, visited);
+		} else {
+			// Assign a Schema.Any to the element type
+			values[valueKey] = Schema.Any;
+		}
+		
+		return values;
+	}
+	
+	if (isCustomType(type)) {
+		values[parentPath] = type;
+		return values;
+	}
+	
+	if (isPrimitive(type)) {
+		values[parentPath] = type;
+		return values;
+	}
+	
+	if (isSchemaPrimitive(type)) {
+		values[parentPath] = type;
+		return values;
+	}
+	
+	if (isSchemaInstance(type)) {
+		values[parentPath] = type;
+		
+		// Check if we have already added this schema type to the flattened object
+		if (visited.indexOf(type) > -1) {
+			return values;
+		}
+		
+		visited.push(type);
+		
+		type.flattenValues(parentPath, values, visited);
+		return values;
+	}
+	
+	return values;
+};
+
 // Give Schema's prototype the event emitter methods
 // and functionality
 Emitter(Schema);
 
-module.exports = Schema;
+module.exports = {
+	Schema,
+	flatten
+};
