@@ -55,7 +55,7 @@ function () {
 
       _this._definition = (0, _objectSpread2.default)({}, _this._definition, obj); // Convert definition into normalised version
 
-      _this.normalised(_this.normalise(_this._definition));
+      _this.normalised(normalise(_this));
 
       return _this;
     });
@@ -309,7 +309,7 @@ function () {
 
       this._definition = val; // Convert definition into normalised version
 
-      this.normalised(this.normalise(this._definition));
+      this.normalised(normalise(this));
       return this;
     }
     /**
@@ -333,116 +333,6 @@ function () {
 
       this._normalised = val;
       return this;
-    }
-    /**
-     * Converts multiple ways to declare a schema into a normalised
-     * structure so we can rely on the structure being consistent.
-     * This converts all schema field definitions to long-hand object
-     * based ones so instead of {"name": String} the field would be
-     * converted to {"name": {"type": String}}.
-     * @param {Object} def The schema definition to normalise.
-     * @param {String=} parentPath The path to normalise. Usually
-     * left not specified so that the definition object can be fully
-     * normalised.
-     * @returns {Object} The normalised schema definition.
-     */
-
-  }, {
-    key: "normalise",
-    value: function normalise(def) {
-      var _this2 = this;
-
-      var parentPath = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
-      var finalObj = {};
-
-      if (def === undefined || def === null) {
-        return def;
-      }
-
-      if (def instanceof Schema) {
-        // The field type is a schema
-        return def;
-      }
-
-      if (isPrimitive(def)) {
-        return def;
-      }
-
-      Object.keys(def).map(function (key) {
-        var fieldData = def[key];
-
-        if (fieldData === undefined) {
-          throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot create a field that has an undefined shape. This usually occurs if you have passed an undefined value to the field."));
-        }
-
-        if (isPrimitive(fieldData)) {
-          var defObj = {
-            "type": fieldData
-          };
-
-          if (fieldData === Array) {
-            // Handle array instance
-            defObj.elementType = Schema.Any;
-          }
-
-          finalObj[key] = defObj;
-          return;
-        }
-
-        if (fieldData instanceof Schema) {
-          // The field type is a schema, return the normalised
-          // Schema definition
-          finalObj[key] = {
-            "type": fieldData
-          };
-          return;
-        }
-
-        if (fieldData instanceof Array) {
-          finalObj[key] = {
-            "type": Array,
-            "elementType": _this2.normalise(fieldData[0])
-          };
-          return;
-        }
-
-        if ((0, _typeof2.default)(fieldData) !== "object") {
-          throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Unsupported schema field data."));
-        }
-
-        if (!fieldData.type) {
-          // Throw as we require a type for an object definition
-          throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot create a field without a type. If you are trying to define an object that contains fields and types, use a new Schema instance. If you just want to define the field as an object with any contents, use an Object primitive."));
-        } // If we have a transform value, make sure it is a function
-
-
-        if (fieldData.transform !== undefined && typeof fieldData.transform !== "function") {
-          throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": The \"transform\" field must be a function."));
-        } // If we have a default value, make sure we don't also have required:true
-
-
-        if (fieldData.default !== undefined && fieldData.required === true) {
-          throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot specify both required:true AND a default since default values are only applied when a field is not explicitly specified."));
-        } // If we have a default value, make sure it validates against the field type
-
-
-        if (fieldData.default !== undefined) {
-          // Validate the default
-          var validator = getTypeValidator(fieldData.type, false, function (type) {
-            if (type instanceof Schema) {
-              return type.validate;
-            }
-          });
-          var validatorResult = validator(fieldData.default);
-
-          if (!validatorResult.valid) {
-            throw new Error("Schema definition invalid at path \"".concat(pathJoin(parentPath, key), "\": Cannot specify a default value of type ").concat(validatorResult.actualType, " when the field type is ").concat(validatorResult.expectedType, "."));
-          }
-        }
-
-        finalObj[key] = fieldData;
-      });
-      return finalObj;
     }
     /**
      * NOT YET WRITTEN, DO NOT USE
@@ -518,34 +408,81 @@ var isSchemaInstance = function isSchemaInstance(val) {
   return true;
 };
 
+var isObjectDefinition = function isObjectDefinition(val) {
+  if ((0, _typeof2.default)(val) !== "object") return false;
+  if (!val.type) return false;
+  return true;
+};
+
+var validateObjectDefinition = function validateObjectDefinition(fieldData, key) {
+  // If we have a transform value, make sure it is a function
+  if (fieldData.transform !== undefined && typeof fieldData.transform !== "function") {
+    throw new Error("Schema definition invalid at path \"".concat(key, "\": The \"transform\" field must be a function."));
+  } // If we have a default value, make sure we don't also have required:true
+
+
+  if (fieldData.default !== undefined && fieldData.required === true) {
+    throw new Error("Schema definition invalid at path \"".concat(key, "\": Cannot specify both required:true AND a default since default values are only applied when a field is not explicitly specified."));
+  } // If we have a default value, make sure it validates against the field type
+
+
+  if (fieldData.default !== undefined) {
+    // Validate the default
+    var validator = getTypeValidator(fieldData.type, false, function (type) {
+      if (type instanceof Schema) {
+        return type.validate;
+      }
+    });
+    var validatorResult = validator(fieldData.default);
+
+    if (!validatorResult.valid) {
+      throw new Error("Schema definition invalid at path \"".concat(key, "\": Cannot specify a default value of type ").concat(validatorResult.actualType, " when the field type is ").concat(validatorResult.expectedType, "."));
+    }
+  }
+};
+
 var flatten = function flatten(def) {
   var parentPath = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
   var values = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
   var visited = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+  console.log("Flatten", parentPath); // Check if the def is a non-flatten type (a custom type)
 
-  // Check if the def is a non-flatten type (a custom type)
   if (isCustomType(def)) {
+    console.log(parentPath, "is custom type");
     values[parentPath] = def;
     return values;
   }
 
   if (isPrimitive(def)) {
+    console.log(parentPath, "is schema primitive");
     values[parentPath] = def;
     return values;
   }
+
+  if (isSchemaInstance(def)) {
+    console.log(parentPath, "is schema instance");
+    values[parentPath] = def;
+    return values;
+  }
+
+  if (!isObjectDefinition(def)) {
+    // We need to throw an error as we don't know what to do now!
+    throw new Error("Unable to flatten object whose signature we don't understand!");
+  } // At this point we know the def is an object definition
+
 
   var type = def.type,
       elementType = def.elementType; // Check for array instance
 
   if (type === Array) {
+    console.log(parentPath, "is object definition of type array");
     values[parentPath] = Array;
     var valueKey = compoundKey(parentPath, "$");
 
     if (elementType) {
       // Recurse into the array data
-      flatten({
-        "type": elementType
-      }, valueKey, values, visited);
+      console.log("it has an element type, flattening that to", valueKey);
+      flatten(normaliseField(elementType, valueKey, visited), valueKey, values, visited);
     } else {
       // Assign a Schema.Any to the element type
       values[valueKey] = Schema.Any;
@@ -570,6 +507,7 @@ var flatten = function flatten(def) {
   }
 
   if (isSchemaInstance(type)) {
+    console.log("Type is schema instance");
     values[parentPath] = type; // Check if we have already added this schema type to the flattened object
 
     if (visited.indexOf(type) > -1) {
@@ -581,7 +519,100 @@ var flatten = function flatten(def) {
     return values;
   }
 
+  console.log("Didn't match any types!");
   return values;
+};
+
+var normalise = function normalise(def) {
+  var values = {};
+  var visited = [];
+  var schemaDefinition = def.definition(); //console.log(`Normalising schema: ${JSON.stringify(schemaDefinition)}`);
+
+  Object.entries(schemaDefinition).map(function (_ref5) {
+    var _ref6 = (0, _slicedToArray2.default)(_ref5, 2),
+        key = _ref6[0],
+        val = _ref6[1];
+
+    //console.log(`Normalising schema key "${key} for schema ${JSON.stringify(schemaDefinition)}"`);
+    values[key] = normaliseField(val, key, visited);
+  });
+  return values;
+};
+
+var normaliseField = function normaliseField(field, key) {
+  var visited = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+
+  if (isCustomType(field)) {
+    //console.log(`Key "${key}" is custom type`);
+    return {
+      "type": field,
+      "required": false
+    };
+  }
+
+  if (isPrimitive(field)) {
+    //console.log(`Key "${key}" is primitive`);
+    return {
+      "type": field,
+      "required": false
+    };
+  }
+
+  if (isSchemaPrimitive(field)) {
+    //console.log(`Key "${key}" is Schema primitive`);
+    return {
+      "type": field,
+      "required": false
+    };
+  }
+
+  if (isSchemaInstance(field)) {
+    // Check if we have already added this schema type to the flattened object
+    if (visited.indexOf(field) > -1) {
+      return undefined;
+    } //console.log(`Key "${key}" is Schema instance`);
+
+
+    visited.push(field);
+    return {
+      "type": field,
+      "required": false
+    };
+  }
+
+  if (field instanceof Array) {
+    //console.log(`Key "${key}" is Array instance`);
+    var elementType = field[0] ? normaliseField(field[0], compoundKey(key, "$")) : Schema.Any; //console.log(`Key "${compoundKey(key, "$")}" is ${JSON.stringify(elementType)}`);
+
+    return {
+      "type": Array,
+      elementType: elementType,
+      "required": false
+    };
+  }
+
+  if (isObjectDefinition(field)) {
+    // Check object definition is valid
+    validateObjectDefinition(field, key); //console.log(`Key "${key}" is object definition`);
+
+    if (field.type === Array) {
+      if (field.elementType) {
+        // Normalise the element type
+        field.elementType = normaliseField(field.elementType, compoundKey(key, "$"));
+      } else {
+        // Set default array elementType of Schema.Any
+        field.elementType = Schema.Any;
+      }
+    } // Make sure the field has default settings
+
+
+    return (0, _objectSpread2.default)({
+      "required": false
+    }, field);
+  } // We don't know how to handle this field information!
+
+
+  throw new Error("Unable to determine what to do with the field data at \"".concat(key, "\". We don't recognise the format! ").concat(JSON.stringify(field)));
 }; // Give Schema's prototype the event emitter methods
 // and functionality
 
@@ -589,5 +620,6 @@ var flatten = function flatten(def) {
 Emitter(Schema);
 module.exports = {
   Schema: Schema,
-  flatten: flatten
+  flatten: flatten,
+  normalise: normalise
 };
