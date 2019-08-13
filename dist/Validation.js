@@ -10,7 +10,8 @@ var customTypes = require("./customTypes");
 
 var _require = require("@irrelon/path"),
     pathGet = _require["get"],
-    pathFurthest = _require["furthest"];
+    pathFurthest = _require["furthest"],
+    pathJoin = _require["join"];
 /**
  * Creates a function that calls each function passed as an
  * argument in turn with the same arguments as the calling
@@ -61,7 +62,7 @@ var validationFailed = function validationFailed(path, value, expectedTypeName) 
     "throwOnFail": false,
     "detectedTypeOverride": ""
   };
-  var actualTypeName = options.detectedTypeOverride ? options.detectedTypeOverride : getType(value);
+  var actualTypeName = options.detectedTypeOverride ? options.detectedTypeOverride : getTypeName(value);
 
   if (options.throwOnFail) {
     throw new Error("Schema violation, \"".concat(path, "\" has schema type ").concat(expectedTypeName, " and cannot be set to value ").concat(String(JSON.stringify(value)).substr(0, 10), " of type ").concat(actualTypeName));
@@ -83,17 +84,43 @@ var validationSucceeded = function validationSucceeded() {
   };
 };
 
-var getType = function getType(value) {
-  if (value instanceof Array) {
-    return "array";
+var getTypeName = function getTypeName(value) {
+  if (isPrimitive(value) || typeof value === "function" || (0, _typeof2.default)(value) === "object") {
+    if (value === String) {
+      return "String";
+    }
+
+    if (value === Number) {
+      return "Number";
+    }
+
+    if (value === Boolean) {
+      return "Boolean";
+    }
+
+    if (value === Array) {
+      return "Array";
+    }
+
+    if (value === Object) {
+      return "Object";
+    }
+
+    if (value === Function) {
+      return "Function";
+    }
+
+    if (value.constructor && value.constructor.name) {
+      return value.constructor.name;
+    }
   }
 
   if (value instanceof Object && !(value instanceof Function)) {
-    return "object";
+    return "Object";
   }
 
   if (value instanceof Function) {
-    return "function";
+    return "Function";
   }
 
   return (0, _typeof2.default)(value);
@@ -156,14 +183,6 @@ var getTypeValidator = function getTypeValidator(value, isRequired, customHandle
     return composeRequired(typeValidatorBoolean, isRequired);
   }
 
-  if (value instanceof Object && !(value instanceof Function) || value === Object) {
-    return composeRequired(typeValidatorObject, isRequired);
-  }
-
-  if (value instanceof Function || value === Function) {
-    return composeRequired(typeValidatorFunction, isRequired);
-  }
-
   var _arr = Object.entries(customTypes);
 
   for (var _i = 0; _i < _arr.length; _i++) {
@@ -172,10 +191,10 @@ var getTypeValidator = function getTypeValidator(value, isRequired, customHandle
         customTypeValue = _arr$_i[1];
 
     if (value === customTypeValue) {
-      if (typeof customTypeValue.validator === "function") {
+      if (typeof customTypeValue.validate === "function") {
         // There is a custom validator function here, call it and use the return value
         // to make either success or failure messages
-        return composeRequired(typeValidatorCustom(customTypeValue.validator, customTypeKey), isRequired);
+        return composeRequired(typeValidatorCustom(customTypeValue.validate, customTypeKey), isRequired);
       } // There is no custom validator function, use the custom type's type field and
       // use a built-in validator for it if any exists
 
@@ -184,6 +203,14 @@ var getTypeValidator = function getTypeValidator(value, isRequired, customHandle
 
       if (primitiveHandler) return primitiveHandler;
     }
+  }
+
+  if (value instanceof Object && !(value instanceof Function) || value === Object) {
+    return composeRequired(typeValidatorObject, isRequired);
+  }
+
+  if (value instanceof Function || value === Function) {
+    return composeRequired(typeValidatorFunction, isRequired);
   } // No matching handlers were found, use an "Any" type validator (always returns true validation)
 
 
@@ -196,7 +223,7 @@ var typeValidatorAny = function typeValidatorAny() {
 
 var typeValidatorRequired = function typeValidatorRequired(value, path) {
   var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -215,9 +242,9 @@ var typeValidatorRequired = function typeValidatorRequired(value, path) {
 };
 
 var typeValidatorCustom = function typeValidatorCustom(customValidator, customTypeName) {
-  return function (value, path) {
-    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-      "throwOnFail": true
+  return function (value, path, schema) {
+    var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+      "throwOnFail": false
     };
 
     if (value === undefined || value === null) {
@@ -236,9 +263,9 @@ var typeValidatorCustom = function typeValidatorCustom(customValidator, customTy
   };
 };
 
-var typeValidatorFunction = function typeValidatorFunction(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+var typeValidatorFunction = function typeValidatorFunction(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -252,9 +279,9 @@ var typeValidatorFunction = function typeValidatorFunction(value, path) {
   return validationSucceeded();
 };
 
-var typeValidatorString = function typeValidatorString(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+var typeValidatorString = function typeValidatorString(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -268,9 +295,9 @@ var typeValidatorString = function typeValidatorString(value, path) {
   return validationSucceeded();
 };
 
-var typeValidatorNumber = function typeValidatorNumber(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+var typeValidatorNumber = function typeValidatorNumber(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -284,9 +311,9 @@ var typeValidatorNumber = function typeValidatorNumber(value, path) {
   return validationSucceeded();
 };
 
-var typeValidatorBoolean = function typeValidatorBoolean(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+var typeValidatorBoolean = function typeValidatorBoolean(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -300,9 +327,9 @@ var typeValidatorBoolean = function typeValidatorBoolean(value, path) {
   return validationSucceeded();
 };
 
-var typeValidatorArray = function typeValidatorArray(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+var typeValidatorArray = function typeValidatorArray(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -310,15 +337,41 @@ var typeValidatorArray = function typeValidatorArray(value, path) {
   }
 
   if (!(value instanceof Array)) {
-    return validationFailed(path, value, "array<any>", options);
+    return validationFailed(path, value, "array<".concat(getTypeName(schema.elementType.type), ">"), options);
+  } // Early exit if we need elements and there are none
+
+
+  if (schema.elementType.required && !value.length) {
+    return validationFailed(path, value, "array<".concat(getTypeName(schema.elementType.type), ">"), options);
+  } // Check if the array entries match the type required inside the array
+
+
+  var elementTypeValidator;
+
+  if (schema.elementType.validate) {
+    elementTypeValidator = schema.elementType.validate;
+  } else if (schema.elementType.type && schema.elementType.type.validate) {
+    elementTypeValidator = schema.elementType.type.validate;
+  } else {
+    elementTypeValidator = getTypeValidator(schema.elementType.type, schema.elementType.required);
+  }
+
+  var elementTypeValidationResult;
+
+  for (var index = 0; index < value.length; index++) {
+    elementTypeValidationResult = elementTypeValidator(value[index], pathJoin(path, index), schema.elementType);
+
+    if (elementTypeValidationResult && elementTypeValidationResult.valid === false) {
+      return elementTypeValidationResult;
+    }
   }
 
   return validationSucceeded();
 };
 
-var typeValidatorObject = function typeValidatorObject(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-    "throwOnFail": true
+var typeValidatorObject = function typeValidatorObject(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
   };
 
   if (value === undefined || value === null) {
@@ -334,7 +387,7 @@ var typeValidatorObject = function typeValidatorObject(value, path) {
 
 var validateData = function validateData(path, schema, data) {
   var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
-    "throwOnFail": true
+    "throwOnFail": false
   };
   // Get furthest away schema path string available for the given path
   // (we can only validate data up to the last type that has been
@@ -374,18 +427,18 @@ var validateData = function validateData(path, schema, data) {
   }); // Get the value in the schema object at the path
 
   var fieldValue = pathGet(schema, furthestPath);
-  var fieldValidator = getTypeValidator(fieldValue);
+  var fieldValidator = getTypeValidator(fieldValue.type);
   var pathValue = pathGet(data, furthestPath, undefined, {
     "transformKey": function transformKey(data) {
       return data;
     }
   }); // Return the result of running the field validator against the field data
 
-  return fieldValidator(pathValue, path, options);
+  return fieldValidator(pathValue, path, fieldValue, options);
 };
 
 module.exports = {
-  getType: getType,
+  getTypeName: getTypeName,
   getTypePrimitive: getTypePrimitive,
   getTypeValidator: getTypeValidator,
   typeValidatorFunction: typeValidatorFunction,

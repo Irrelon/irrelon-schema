@@ -159,12 +159,14 @@ describe("flatten()", () => {
 			}
 		});
 		
-		const testFieldDefinition = {
-			"type": Array,
-			"elementType": MySchema
-		};
+		const TestSchema = new Schema({
+			"testField": {
+				"type": Array,
+				"elementType": MySchema
+			}
+		});
 		
-		const result = flatten(testFieldDefinition, "testField");
+		const result = TestSchema.flattenValues();
 		
 		assert.strictEqual(result["testField"], Array, "The field value is correct");
 		assert.strictEqual(result["testField.$"], MySchema, "The field value is correct");
@@ -172,5 +174,72 @@ describe("flatten()", () => {
 		assert.strictEqual(result["testField.$.age"], Number, "The field value is correct");
 		assert.strictEqual(result["testField.$.stats"], Array, "The field value is correct");
 		assert.strictEqual(result["testField.$.stats.$"], Number, "The field value is correct");
+	});
+	
+	it("Will return the correct value for a Schema instance flattenValues() call", () => {
+		const MySchema = new Schema({
+			"name": String,
+			"age": Number,
+			"stats": {
+				"type": Array,
+				"elementType": Number
+			}
+		});
+		
+		const result = MySchema.flattenValues();
+		
+		assert.strictEqual(result["age"], Number, "The field value is correct");
+		assert.strictEqual(result["name"], String, "The field value is correct");
+		assert.strictEqual(result["stats"], Array, "The field value is correct");
+		assert.strictEqual(result["stats.$"], Number, "The field value is correct");
+	});
+	
+	it("Will return the correct value for a Schema instance flattenValues() call with an array-nested Schema instance", () => {
+		const NewSchema = new Schema({
+			"name": String,
+			"age": Number
+		});
+		
+		const MySchema = new Schema({
+			"name": String,
+			"age": Number,
+			"stats": {
+				"type": Array,
+				"elementType": NewSchema
+			}
+		});
+		
+		const result = MySchema.flattenValues();
+		
+		assert.strictEqual(result["age"], Number, "The field value is correct");
+		assert.strictEqual(result["name"], String, "The field value is correct");
+		assert.strictEqual(result["stats"], Array, "The field value is correct");
+		assert.strictEqual(result["stats.$"] instanceof Schema, true, "The field value is correct");
+		assert.strictEqual(result["stats.$"], NewSchema, "The field value is correct");
+		assert.strictEqual(result["stats.$.age"], Number, "The field value is correct");
+		assert.strictEqual(result["stats.$.name"], String, "The field value is correct");
+	});
+	
+	it("Will return the correct value for a short-hand Schema instance flattenValues() call with an array-nested Schema instance", () => {
+		const NewSchema = new Schema({
+			"name": String,
+			"age": Number
+		});
+		
+		const MySchema = new Schema({
+			"name": String,
+			"age": Number,
+			"stats": [NewSchema]
+		});
+		
+		const result = MySchema.flattenValues();
+		
+		assert.strictEqual(result["age"], Number, "The field value is correct");
+		assert.strictEqual(result["name"], String, "The field value is correct");
+		assert.strictEqual(result["stats"], Array, "The field value is correct");
+		assert.strictEqual(result["stats.$"] instanceof Schema, true, "The field value is correct");
+		assert.strictEqual(result["stats.$"], NewSchema, "The field value is correct");
+		assert.strictEqual(result["stats.$.age"], Number, "The field value is correct");
+		assert.strictEqual(result["stats.$.name"], String, "The field value is correct");
 	});
 });

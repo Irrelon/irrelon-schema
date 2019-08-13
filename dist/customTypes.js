@@ -7,8 +7,8 @@ var _objectSpread2 = _interopRequireDefault(require("@babel/runtime/helpers/obje
 var customTypes = {
   "Any": {
     "type": "Any",
-    "validator": function validator(value, path, options, validationSucceeded) {
-      return validationSucceeded();
+    "validate": function validate(value, path, options) {
+      return true;
     }
   },
   "Integer": {

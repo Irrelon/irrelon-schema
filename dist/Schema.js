@@ -142,7 +142,8 @@ function () {
             // We have a transform function, execute it and set the response value
             // to the model value at this path
             pathSet(currentModel, i, schemaFieldValue.transform(pathGet(currentModel, i), pathGet(originalModel, parentPath), originalModel));
-          }
+          } // Get updated model field value
+
 
           modelFieldValue = pathGet(currentModel, i); // Get the validator for this field
 
@@ -153,7 +154,7 @@ function () {
           }); // Validate the model value against the schema type
 
 
-          var result = _validator(modelFieldValue, currentFullPath, {
+          var result = _validator(modelFieldValue, currentFullPath, schemaFieldValue, {
             originalModel: originalModel,
             "throwOnFail": options.throwOnFail
           });
@@ -551,7 +552,14 @@ var normaliseField = function normaliseField(field, key) {
   }
 
   if (isPrimitive(field)) {
-    //console.log(`Key "${key}" is primitive`);
+    if (field === Array) {
+      return {
+        "type": field,
+        "required": false,
+        "elementType": Schema.Any
+      };
+    }
+
     return {
       "type": field,
       "required": false

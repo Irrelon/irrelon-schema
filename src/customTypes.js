@@ -1,7 +1,7 @@
 const customTypes = {
 	"Any": {
 		"type": "Any",
-		"validator": (value, path, options, validationSucceeded) => validationSucceeded()
+		"validate": (value, path, options) => true
 	},
 
 	"Integer": {

@@ -274,6 +274,7 @@ class Schema {
 					pathSet(currentModel, i, schemaFieldValue.transform(pathGet(currentModel, i), pathGet(originalModel, parentPath), originalModel));
 				}
 				
+				// Get updated model field value
 				modelFieldValue = pathGet(currentModel, i);
 				
 				// Get the validator for this field
@@ -284,7 +285,7 @@ class Schema {
 				});
 				
 				// Validate the model value against the schema type
-				const result = validator(modelFieldValue, currentFullPath, {
+				const result = validator(modelFieldValue, currentFullPath, schemaFieldValue, {
 					originalModel,
 					"throwOnFail": options.throwOnFail
 				});
@@ -516,7 +517,14 @@ const normaliseField = (field, key, visited = []) => {
 	}
 	
 	if (isPrimitive(field)) {
-		//console.log(`Key "${key}" is primitive`);
+		if (field === Array) {
+			return {
+				"type": field,
+				"required": false,
+				"elementType": Schema.Any
+			};
+		}
+		
 		return {
 			"type": field,
 			"required": false
