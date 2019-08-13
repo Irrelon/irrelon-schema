@@ -446,22 +446,19 @@ var flatten = function flatten(def) {
   var parentPath = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
   var values = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
   var visited = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
-  console.log("Flatten", parentPath); // Check if the def is a non-flatten type (a custom type)
 
+  // Check if the def is a non-flatten type (a custom type)
   if (isCustomType(def)) {
-    console.log(parentPath, "is custom type");
     values[parentPath] = def;
     return values;
   }
 
   if (isPrimitive(def)) {
-    console.log(parentPath, "is schema primitive");
     values[parentPath] = def;
     return values;
   }
 
   if (isSchemaInstance(def)) {
-    console.log(parentPath, "is schema instance");
     values[parentPath] = def;
     return values;
   }
@@ -476,13 +473,11 @@ var flatten = function flatten(def) {
       elementType = def.elementType; // Check for array instance
 
   if (type === Array) {
-    console.log(parentPath, "is object definition of type array");
     values[parentPath] = Array;
     var valueKey = compoundKey(parentPath, "$");
 
     if (elementType) {
       // Recurse into the array data
-      console.log("it has an element type, flattening that to", valueKey);
       flatten(normaliseField(elementType, valueKey, visited), valueKey, values, visited);
     } else {
       // Assign a Schema.Any to the element type
@@ -508,7 +503,6 @@ var flatten = function flatten(def) {
   }
 
   if (isSchemaInstance(type)) {
-    console.log("Type is schema instance");
     values[parentPath] = type; // Check if we have already added this schema type to the flattened object
 
     if (visited.indexOf(type) > -1) {
@@ -520,21 +514,18 @@ var flatten = function flatten(def) {
     return values;
   }
 
-  console.log("Didn't match any types!");
   return values;
 };
 
 var normalise = function normalise(def) {
   var values = {};
   var visited = [];
-  var schemaDefinition = def.definition(); //console.log(`Normalising schema: ${JSON.stringify(schemaDefinition)}`);
-
+  var schemaDefinition = def.definition();
   Object.entries(schemaDefinition).map(function (_ref5) {
     var _ref6 = (0, _slicedToArray2.default)(_ref5, 2),
         key = _ref6[0],
         val = _ref6[1];
 
-    //console.log(`Normalising schema key "${key} for schema ${JSON.stringify(schemaDefinition)}"`);
     values[key] = normaliseField(val, key, visited);
   });
   return values;
@@ -544,7 +535,6 @@ var normaliseField = function normaliseField(field, key) {
   var visited = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
 
   if (isCustomType(field)) {
-    //console.log(`Key "${key}" is custom type`);
     return {
       "type": field,
       "required": false
@@ -567,7 +557,6 @@ var normaliseField = function normaliseField(field, key) {
   }
 
   if (isSchemaPrimitive(field)) {
-    //console.log(`Key "${key}" is Schema primitive`);
     return {
       "type": field,
       "required": false
@@ -578,8 +567,7 @@ var normaliseField = function normaliseField(field, key) {
     // Check if we have already added this schema type to the flattened object
     if (visited.indexOf(field) > -1) {
       return undefined;
-    } //console.log(`Key "${key}" is Schema instance`);
-
+    }
 
     visited.push(field);
     return {
@@ -589,9 +577,7 @@ var normaliseField = function normaliseField(field, key) {
   }
 
   if (field instanceof Array) {
-    //console.log(`Key "${key}" is Array instance`);
-    var elementType = field[0] ? normaliseField(field[0], compoundKey(key, "$")) : Schema.Any; //console.log(`Key "${compoundKey(key, "$")}" is ${JSON.stringify(elementType)}`);
-
+    var elementType = field[0] ? normaliseField(field[0], compoundKey(key, "$")) : Schema.Any;
     return {
       "type": Array,
       elementType: elementType,
@@ -601,7 +587,7 @@ var normaliseField = function normaliseField(field, key) {
 
   if (isObjectDefinition(field)) {
     // Check object definition is valid
-    validateObjectDefinition(field, key); //console.log(`Key "${key}" is object definition`);
+    validateObjectDefinition(field, key);
 
     if (field.type === Array) {
       if (field.elementType) {

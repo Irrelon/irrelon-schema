@@ -410,22 +410,18 @@ const validateObjectDefinition = (fieldData, key) => {
 };
 
 const flatten = (def, parentPath = "", values = {}, visited = []) => {
-	console.log("Flatten", parentPath);
 	// Check if the def is a non-flatten type (a custom type)
 	if (isCustomType(def)) {
-		console.log(parentPath, "is custom type");
 		values[parentPath] = def;
 		return values;
 	}
 	
 	if (isPrimitive(def)) {
-		console.log(parentPath, "is schema primitive");
 		values[parentPath] = def;
 		return values;
 	}
 	
 	if (isSchemaInstance(def)) {
-		console.log(parentPath, "is schema instance");
 		values[parentPath] = def;
 		return values;
 	}
@@ -440,14 +436,12 @@ const flatten = (def, parentPath = "", values = {}, visited = []) => {
 	
 	// Check for array instance
 	if (type === Array) {
-		console.log(parentPath, "is object definition of type array");
 		values[parentPath] = Array;
 		
 		const valueKey = compoundKey(parentPath, "$");
 		
 		if (elementType) {
 			// Recurse into the array data
-			console.log("it has an element type, flattening that to", valueKey);
 			flatten(normaliseField(elementType, valueKey, visited), valueKey, values, visited);
 		} else {
 			// Assign a Schema.Any to the element type
@@ -473,7 +467,6 @@ const flatten = (def, parentPath = "", values = {}, visited = []) => {
 	}
 	
 	if (isSchemaInstance(type)) {
-		console.log("Type is schema instance");
 		values[parentPath] = type;
 		
 		// Check if we have already added this schema type to the flattened object
@@ -487,8 +480,6 @@ const flatten = (def, parentPath = "", values = {}, visited = []) => {
 		return values;
 	}
 	
-	console.log("Didn't match any types!");
-	
 	return values;
 };
 
@@ -497,10 +488,7 @@ const normalise = (def) => {
 	const visited = [];
 	const schemaDefinition = def.definition();
 	
-	//console.log(`Normalising schema: ${JSON.stringify(schemaDefinition)}`);
-	
 	Object.entries(schemaDefinition).map(([key, val]) => {
-		//console.log(`Normalising schema key "${key} for schema ${JSON.stringify(schemaDefinition)}"`);
 		values[key] = normaliseField(val, key, visited);
 	});
 	
@@ -509,7 +497,6 @@ const normalise = (def) => {
 
 const normaliseField = (field, key, visited = []) => {
 	if (isCustomType(field)) {
-		//console.log(`Key "${key}" is custom type`);
 		return {
 			"type": field,
 			"required": false
@@ -532,7 +519,6 @@ const normaliseField = (field, key, visited = []) => {
 	}
 	
 	if (isSchemaPrimitive(field)) {
-		//console.log(`Key "${key}" is Schema primitive`);
 		return {
 			"type": field,
 			"required": false
@@ -545,7 +531,6 @@ const normaliseField = (field, key, visited = []) => {
 			return undefined;
 		}
 		
-		//console.log(`Key "${key}" is Schema instance`);
 		visited.push(field);
 		
 		return {
@@ -555,9 +540,8 @@ const normaliseField = (field, key, visited = []) => {
 	}
 	
 	if (field instanceof Array) {
-		//console.log(`Key "${key}" is Array instance`);
 		const elementType = field[0] ? normaliseField(field[0], compoundKey(key, "$")) : Schema.Any;
-		//console.log(`Key "${compoundKey(key, "$")}" is ${JSON.stringify(elementType)}`);
+		
 		return {
 			"type": Array,
 			elementType,
@@ -568,8 +552,6 @@ const normaliseField = (field, key, visited = []) => {
 	if (isObjectDefinition(field)) {
 		// Check object definition is valid
 		validateObjectDefinition(field, key);
-		
-		//console.log(`Key "${key}" is object definition`);
 		
 		if (field.type === Array) {
 			if (field.elementType) {
