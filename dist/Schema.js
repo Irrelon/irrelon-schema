@@ -14,7 +14,7 @@ var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/creat
 
 var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
 
-var Emitter = require("irrelon-emitter");
+var Emitter = require("@irrelon/emitter");
 
 var _require = require("@irrelon/path"),
     pathJoin = _require["join"],

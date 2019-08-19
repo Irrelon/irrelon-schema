@@ -1,4 +1,4 @@
-const Emitter = require("irrelon-emitter");
+const Emitter = require("@irrelon/emitter");
 
 const {
 	"join": pathJoin,
