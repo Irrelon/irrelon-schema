@@ -19,7 +19,11 @@ const {Schema} = require("@irrelon/schema");
 // ways of describing a field are supported. Either
 // directly via a primitive or by providing a field
 // definition object that defines "type" and
-// potentially other options as well like "required". 
+// potentially other options as well like "required".
+
+// We call the field definition object as shown below
+// in the _id field "long-hand" and call a primitive
+// like the name field below "short-hand".
 const userSchema = new Schema({
 	"_id": {
 		"type": String,
