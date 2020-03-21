@@ -1,6 +1,6 @@
 {
   "name": "@irrelon/schema",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "A JSON schema validation module to give you realtime data test coverage.",
   "main": "./index.js",
   "scripts": {
@@ -30,5 +30,6 @@
     "@babel/runtime": "^7.3.1",
     "@irrelon/path": "^2.1.1",
     "@irrelon/emitter": "^3.0.0"
-  }
+  },
+  "private": false
 }
