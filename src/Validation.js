@@ -156,6 +156,10 @@ const getTypeValidator = (value, isRequired, customHandler) => {
 		return composeRequired(typeValidatorBoolean, isRequired);
 	}
 	
+	if (value instanceof Date || value === Date) {
+		return composeRequired(typeValidatorDate, isRequired);
+	}
+	
 	for (const [customTypeKey, customTypeValue] of Object.entries(customTypes)) {
 		if (value === customTypeValue) {
 			if (typeof customTypeValue.validate === "function") {
@@ -303,6 +307,25 @@ const typeValidatorArray = (value, path, schema, options = {"throwOnFail": false
 		if (elementTypeValidationResult && elementTypeValidationResult.valid === false) {
 			return elementTypeValidationResult;
 		}
+	}
+	
+	return validationSucceeded();
+};
+
+const typeValidatorDate = (value, path, schema, options = {"throwOnFail": false}) => {
+	if (value === undefined || value === null) {
+		return validationSucceeded();
+	}
+	
+	if (typeof value === "string") {
+		// Check if the string is a valid ISO format date
+		const tmpDate = Date.parse(value);
+		
+		if (isNaN(tmpDate)) {
+			return validationFailed(path, value, "date", options);
+		}
+	} else if (!(value instanceof Date)) {
+		return validationFailed(path, value, "date", options);
 	}
 	
 	return validationSucceeded();

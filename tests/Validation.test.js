@@ -50,7 +50,10 @@ describe("Validation", () => {
 			expect(3);
 			
 			const result = validateData("func", {
-				"func": Function
+				"func": {
+					"type": Function,
+					"required": false
+				}
 			}, {
 				"func": () => {}
 			}, {
@@ -85,7 +88,10 @@ describe("Validation", () => {
 			expect(3);
 			
 			const result = validateData("name", {
-				"name": String
+				"name": {
+					"type":String,
+					"required": false
+				}
 			}, {
 				"name": "hello"
 			}, {
@@ -116,11 +122,52 @@ describe("Validation", () => {
 			assert.strictEqual(result.valid, false, "The validation result was correct");
 		});
 		
+		it("Passes positive date validation", () => {
+			expect(3);
+			
+			const result = validateData("date", {
+				"date": {
+					"type": Date,
+					"required": false
+				}
+			}, {
+				"date": "2001-01-01T12:00:00Z"
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, true, "The validation result was correct");
+		});
+		
+		it("Passes negative date validation", () => {
+			expect(3);
+			
+			const result = validateData("date", {
+				"date": {
+					"type": Date,
+					"required": false
+				}
+			}, {
+				"date": "2015-02-32"
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, false, "The validation result was correct");
+		});
+		
 		it("Passes positive number validation", () => {
 			expect(3);
 			
 			const result = validateData("name", {
-				"name": Number
+				"name": {
+					"type": Number,
+					"required": false
+				}
 			}, {
 				"name": 1
 			}, {
@@ -155,7 +202,10 @@ describe("Validation", () => {
 			expect(3);
 			
 			const result = validateData("name", {
-				"name": Object
+				"name": {
+					"type": Object,
+					"required": false
+				}
 			}, {
 				"name": {}
 			}, {
@@ -254,7 +304,10 @@ describe("Validation", () => {
 			expect(3);
 			
 			const result = validateData("name", {
-				"name": Boolean
+				"name": {
+					"type": Boolean,
+					"required": false
+				}
 			}, {
 				"name": true
 			}, {
@@ -283,6 +336,30 @@ describe("Validation", () => {
 			assert.strictEqual(typeof result, "object", "The result data is an object");
 			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
 			assert.strictEqual(result.valid, false, "The validation result was correct");
+		});
+		
+		it("Doesn't try to validate fields if they are not required and have sub-schema that is", () => {
+			expect(3);
+			
+			const result = validateData("metaData", {
+				"metaData": {
+					"type": new Schema({
+						"test": {
+							"type": Boolean,
+							"required": true
+						}
+					}),
+					"required": false
+				}
+			}, {
+				"metaData": undefined
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, true, "The validation result was correct");
 		});
 	});
 });

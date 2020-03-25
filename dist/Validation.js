@@ -183,6 +183,10 @@ var getTypeValidator = function getTypeValidator(value, isRequired, customHandle
     return composeRequired(typeValidatorBoolean, isRequired);
   }
 
+  if (value instanceof Date || value === Date) {
+    return composeRequired(typeValidatorDate, isRequired);
+  }
+
   var _arr = Object.entries(customTypes);
 
   for (var _i = 0; _i < _arr.length; _i++) {
@@ -364,6 +368,29 @@ var typeValidatorArray = function typeValidatorArray(value, path, schema) {
     if (elementTypeValidationResult && elementTypeValidationResult.valid === false) {
       return elementTypeValidationResult;
     }
+  }
+
+  return validationSucceeded();
+};
+
+var typeValidatorDate = function typeValidatorDate(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
+  };
+
+  if (value === undefined || value === null) {
+    return validationSucceeded();
+  }
+
+  if (typeof value === "string") {
+    // Check if the string is a valid ISO format date
+    var tmpDate = Date.parse(value);
+
+    if (isNaN(tmpDate)) {
+      return validationFailed(path, value, "date", options);
+    }
+  } else if (!(value instanceof Date)) {
+    return validationFailed(path, value, "date", options);
   }
 
   return validationSucceeded();
