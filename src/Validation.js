@@ -100,7 +100,7 @@ const getTypeName = (value) => {
 };
 
 const isPrimitive = (value) => {
-	return value === Array || value === String || value === Number || value === Boolean || value === Object || value === Function;
+	return value === Array || value === String || value === Number || value === Boolean || value === Object || value === Function || value === Date;
 };
 
 const getTypePrimitive = (value) => {

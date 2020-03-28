@@ -10,6 +10,7 @@ const {
 
 const {
 	getTypePrimitive,
+	getTypeName,
 	getTypeValidator,
 	isPrimitive
 } = require("./Validation");
@@ -170,6 +171,11 @@ class Schema {
 		return this;
 	};
 	
+	simplify = () => {
+		// Use the simplify() function defined *outside* the class
+		return simplify(this.normalised());
+	};
+	
 	/**
 	 * Checks if the passed model is valid or not and returns
 	 * a boolean true or false.
@@ -203,6 +209,18 @@ class Schema {
 		}
 		
 		const schemaDefinition = this.normalised();
+		
+		if (model !== undefined && typeof model !== "object") {
+			// We are validating a model against a schema which means
+			// the model MUST be an object, reject this as a validation failure
+			const expectedSchema = simplify(schemaDefinition);
+			
+			return {
+				"valid": false,
+				"path": currentPath,
+				"reason": `Schema violation, "${currentPath}" expects an object that conforms to the schema ${JSON.stringify(expectedSchema)} and cannot be set to value ${String(JSON.stringify(model)).substr(0, 10)} of type ${getTypeName(model)}`
+			};
+		}
 		
 		// Now check for any fields in the model that
 		// don't exist in the schema
@@ -483,6 +501,29 @@ const flatten = (def, parentPath = "", values = {}, visited = []) => {
 	return values;
 };
 
+const getTypePrimitiveName = (val) => {
+	if (isPrimitive(val)) {
+		return val.name;
+	}
+	
+	if (val === null) {
+		return "null";
+	}
+	
+	if (val === undefined) {
+		return "undefined";
+	}
+	
+	return val.constructor.name;
+};
+
+const simplify = (normalisedSchema) => {
+	return Object.entries(normalisedSchema).reduce((obj, [key, val]) => {
+		obj[key] = getTypePrimitiveName(val.type);
+		return obj;
+	}, {});
+};
+
 const normalise = (def) => {
 	const values = {};
 	const visited = [];
@@ -581,5 +622,6 @@ Emitter(Schema);
 module.exports = {
 	Schema,
 	flatten,
-	normalise
+	normalise,
+	simplify
 };

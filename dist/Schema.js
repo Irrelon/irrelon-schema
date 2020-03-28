@@ -25,6 +25,7 @@ var _require = require("@irrelon/path"),
 
 var _require2 = require("./Validation"),
     getTypePrimitive = _require2.getTypePrimitive,
+    getTypeName = _require2.getTypeName,
     getTypeValidator = _require2.getTypeValidator,
     isPrimitive = _require2.isPrimitive;
 
@@ -59,6 +60,10 @@ function () {
 
       return _this;
     });
+    (0, _defineProperty2.default)(this, "simplify", function () {
+      // Use the simplify() function defined *outside* the class
+      return simplify(_this.normalised());
+    });
     (0, _defineProperty2.default)(this, "isValid", function (model, options) {
       return _this.validate(model, options).valid;
     });
@@ -72,7 +77,18 @@ function () {
         currentPath = undefined;
       }
 
-      var schemaDefinition = _this.normalised(); // Now check for any fields in the model that
+      var schemaDefinition = _this.normalised();
+
+      if (model !== undefined && (0, _typeof2.default)(model) !== "object") {
+        // We are validating a model against a schema which means
+        // the model MUST be an object, reject this as a validation failure
+        var expectedSchema = simplify(schemaDefinition);
+        return {
+          "valid": false,
+          "path": currentPath,
+          "reason": "Schema violation, \"".concat(currentPath, "\" expects an object that conforms to the schema ").concat(JSON.stringify(expectedSchema), " and cannot be set to value ").concat(String(JSON.stringify(model)).substr(0, 10), " of type ").concat(getTypeName(model))
+        };
+      } // Now check for any fields in the model that
       // don't exist in the schema
 
 
@@ -517,14 +533,41 @@ var flatten = function flatten(def) {
   return values;
 };
 
+var getTypePrimitiveName = function getTypePrimitiveName(val) {
+  if (isPrimitive(val)) {
+    return val.name;
+  }
+
+  if (val === null) {
+    return "null";
+  }
+
+  if (val === undefined) {
+    return "undefined";
+  }
+
+  return val.constructor.name;
+};
+
+var simplify = function simplify(normalisedSchema) {
+  return Object.entries(normalisedSchema).reduce(function (obj, _ref5) {
+    var _ref6 = (0, _slicedToArray2.default)(_ref5, 2),
+        key = _ref6[0],
+        val = _ref6[1];
+
+    obj[key] = getTypePrimitiveName(val.type);
+    return obj;
+  }, {});
+};
+
 var normalise = function normalise(def) {
   var values = {};
   var visited = [];
   var schemaDefinition = def.definition();
-  Object.entries(schemaDefinition).map(function (_ref5) {
-    var _ref6 = (0, _slicedToArray2.default)(_ref5, 2),
-        key = _ref6[0],
-        val = _ref6[1];
+  Object.entries(schemaDefinition).map(function (_ref7) {
+    var _ref8 = (0, _slicedToArray2.default)(_ref7, 2),
+        key = _ref8[0],
+        val = _ref8[1];
 
     values[key] = normaliseField(val, key, visited);
   });
@@ -615,5 +658,6 @@ Emitter(Schema);
 module.exports = {
   Schema: Schema,
   flatten: flatten,
-  normalise: normalise
+  normalise: normalise,
+  simplify: simplify
 };

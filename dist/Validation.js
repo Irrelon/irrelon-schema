@@ -127,7 +127,7 @@ var getTypeName = function getTypeName(value) {
 };
 
 var isPrimitive = function isPrimitive(value) {
-  return value === Array || value === String || value === Number || value === Boolean || value === Object || value === Function;
+  return value === Array || value === String || value === Number || value === Boolean || value === Object || value === Function || value === Date;
 };
 
 var getTypePrimitive = function getTypePrimitive(value) {

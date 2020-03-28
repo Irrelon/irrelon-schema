@@ -1,5 +1,5 @@
 const {describe, it, expect, assert} = require("mocha-expect");
-const {Schema} = require("../dist/Schema");
+const {Schema, simplify} = require("../dist/Schema");
 
 const actionPlanSchema = require("./lib/actionPlanSchema");
 
@@ -624,6 +624,52 @@ describe ("Schema", () => {
 			
 			assert.strictEqual(model.string, setValue, "The model data was set successfully");
 			assert.strictEqual(validModel.valid, weWant, "The model was validated against the schema successfully");
+		});
+		
+		it("Fails validation when a string is passed to a field that has been defined as an object or schema", () => {
+			expect(2);
+			
+			const schema = new Schema({
+				"status": new Schema({
+					"from": {
+						"type": String
+					}
+				})
+			});
+			
+			const model = {
+				"status": "hello"
+			};
+			
+			const validModel = schema.validate(model);
+			
+			assert.strictEqual(validModel.valid, false, "The model was validated against the schema successfully");
+			assert.strictEqual(validModel.reason, `Schema violation, "status" expects an object that conforms to the schema {"from":"String"} and cannot be set to value "hello" of type string`);
+		});
+		
+		it("Provides a simplified single level schema definition from a normalised schema", () => {
+			const schema = new Schema({
+				"name": {
+					"type": String,
+					"required": false
+				},
+				"age": {
+					"type": Number,
+					"required": true
+				},
+				"meta": {
+					"type": new Schema({
+						"profileImage": String
+					}),
+					"required": false
+				}
+			});
+			
+			const result = schema.simplify();
+			
+			assert.strictEqual(result.name, "String", "Type name correct");
+			assert.strictEqual(result.age, "Number", "Type name correct");
+			assert.strictEqual(result.meta, "Schema", "Type name correct");
 		});
 		
 		it("Passes positive number validation", () => {
