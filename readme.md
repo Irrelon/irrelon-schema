@@ -180,6 +180,20 @@ const arraySchema = new Schema({
 });
 ```
 
+### One Of
+Defines a list of values that the model value can be.
+
+Below, a model of `{"name": "foo"}` or `{"name": "bar"}`
+are valid but `{"name": "somethingElse"}` would not be.
+```js
+const userSchema = new Schema({
+	"name": {
+        "type": String,
+        "oneOf": ["foo", "bar"]	
+    }
+});
+```
+
 ## Schema API
 
 ### Schema(definition, options)

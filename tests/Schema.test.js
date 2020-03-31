@@ -15,6 +15,7 @@ describe ("Schema", () => {
 					"default": false
 				}
 			});
+			assert.ok(false, "The call did not throw an error!");
 		} catch (e) {
 			assert.ok(true, "The call threw an error");
 		}
@@ -30,6 +31,7 @@ describe ("Schema", () => {
 					"default": 3245 // This is a number not a string so should throw an error!
 				}
 			});
+			assert.ok(false, "The call did not throw an error!");
 		} catch (e) {
 			assert.ok(true, "The call threw an error");
 		}
@@ -219,6 +221,39 @@ describe ("Schema", () => {
 	});
 	
 	describe("validate()", () => {
+		it("Can correctly validate positive oneOf clause in schema", () => {
+			const schema = new Schema({
+				"name": {
+					"type": String,
+					"oneOf": ["this", "that"],
+					"required": true
+				}
+			});
+			
+			const result = schema.validate({
+				"name": "this"
+			});
+			
+			assert.strictEqual(result.valid, true, "The schema validated correctly");
+		});
+		
+		it("Can correctly validate negative oneOf clause in schema", () => {
+			const schema = new Schema({
+				"name": {
+					"type": String,
+					"oneOf": ["this", "that"],
+					"required": true
+				}
+			});
+			
+			const result = schema.validate({
+				"name": "none"
+			});
+			
+			assert.strictEqual(result.valid, false, "The schema validated correctly");
+			assert.strictEqual(result.reason, `Schema violation, expected "name" to be one of ["this","that"] but found "none"`, "The schema validated correctly");
+		});
+		
 		it("Can correctly validate positive shorthand primitive function", () => {
 			const schema = new Schema({
 				"func": Function

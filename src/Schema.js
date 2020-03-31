@@ -296,7 +296,7 @@ class Schema {
 				modelFieldValue = pathGet(currentModel, i);
 				
 				// Get the validator for this field
-				const validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue.required, (type) => {
+				const validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue, (type) => {
 					if (type instanceof Schema) {
 						return type.validate;
 					}

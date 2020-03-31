@@ -160,6 +160,46 @@ describe("Validation", () => {
 			assert.strictEqual(result.valid, false, "The validation result was correct");
 		});
 		
+		it("Passes positive string 'oneOf' validation", () => {
+			expect(3);
+			
+			const result = validateData("date", {
+				"numberLabel": {
+					"type": String,
+					"oneOf": ["one", "two", "four"],
+					"required": false
+				}
+			}, {
+				"numberLabel": "one"
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, true, "The validation result was correct");
+		});
+		
+		it("Passes negative string 'oneOf' validation", () => {
+			expect(3);
+			
+			const result = validateData("numberLabel", {
+				"numberLabel": {
+					"type": String,
+					"oneOf": ["one", "two", "four"],
+					"required": false
+				}
+			}, {
+				"numberLabel": "three"
+			}, {
+				"throwOnFail": false
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, false, "The validation result was correct");
+		});
+		
 		it("Passes positive number validation", () => {
 			expect(3);
 			
@@ -306,7 +346,7 @@ describe("Validation", () => {
 			const result = validateData("name", {
 				"name": {
 					"type": Boolean,
-					"required": false
+					"required": true
 				}
 			}, {
 				"name": true

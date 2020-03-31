@@ -12,50 +12,6 @@ var _require = require("@irrelon/path"),
     pathGet = _require["get"],
     pathFurthest = _require["furthest"],
     pathJoin = _require["join"];
-/**
- * Creates a function that calls each function passed as an
- * argument in turn with the same arguments as the calling
- * code provides.
- * @param {Function} args The functions to call in turn.
- * @returns {Function} A function to call that will call each
- * function presented as an argument in turn.
- */
-
-
-var compose = function compose() {
-  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-    args[_key] = arguments[_key];
-  }
-
-  return function () {
-    for (var _len2 = arguments.length, endCallArgs = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-      endCallArgs[_key2] = arguments[_key2];
-    }
-
-    return args.map(function (item) {
-      return item.apply(void 0, endCallArgs);
-    });
-  };
-};
-
-var composeRequired = function composeRequired(validator, isRequired) {
-  if (isRequired) {
-    var composedFunc = compose(typeValidatorRequired, validator);
-    return function () {
-      var result = composedFunc.apply(void 0, arguments);
-
-      for (var i = 0; i < result.length; i++) {
-        if (result[i].valid === false) {
-          return result[i];
-        }
-      }
-
-      return validationSucceeded();
-    };
-  }
-
-  return validator;
-};
 
 var validationFailed = function validationFailed(path, value, expectedTypeName) {
   var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
@@ -73,6 +29,23 @@ var validationFailed = function validationFailed(path, value, expectedTypeName) 
     "expectedType": expectedTypeName,
     "actualType": actualTypeName,
     "reason": "Expected ".concat(expectedTypeName, " but value ").concat(String(JSON.stringify(value)).substr(0, 10), " is type {").concat(actualTypeName, "}"),
+    "originalModel": options.originalModel,
+    path: path
+  };
+};
+
+var validationFailedCustom = function validationFailedCustom(path, value, errorMessage) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
+  };
+
+  if (options.throwOnFail) {
+    throw new Error(errorMessage);
+  }
+
+  return {
+    "valid": false,
+    "reason": errorMessage,
     "originalModel": options.originalModel,
     path: path
   };
@@ -157,8 +130,66 @@ var getTypePrimitive = function getTypePrimitive(value) {
 
   return (0, _typeof2.default)(value);
 };
+/**
+ * Creates a function that calls each function passed as an
+ * argument in turn with the same arguments as the calling
+ * code provides.
+ * @param {Function} args The functions to call in turn.
+ * @returns {Function} A function to call that will call each
+ * function presented as an argument in turn.
+ */
 
-var getTypeValidator = function getTypeValidator(value, isRequired, customHandler) {
+
+var compose = function compose() {
+  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+    args[_key] = arguments[_key];
+  }
+
+  return function () {
+    for (var _len2 = arguments.length, endCallArgs = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+      endCallArgs[_key2] = arguments[_key2];
+    }
+
+    return args.map(function (item) {
+      return item.apply(void 0, endCallArgs);
+    });
+  };
+};
+
+var composeComplexValidation = function composeComplexValidation() {
+  var composedFunc = compose.apply(void 0, arguments);
+  return function () {
+    var result = composedFunc.apply(void 0, arguments);
+
+    for (var i = 0; i < result.length; i++) {
+      if (result[i].valid === false) {
+        return result[i];
+      }
+    }
+
+    return validationSucceeded();
+  };
+};
+
+var getComposedTypeValidator = function getComposedTypeValidator(valueTypeValidator, typeSchemaOptions, customHandler) {
+  var required = typeSchemaOptions.required,
+      oneOf = typeSchemaOptions.oneOf;
+  var validationFunctions = [];
+
+  if (required) {
+    validationFunctions.push(typeValidatorRequired);
+  }
+
+  validationFunctions.push(valueTypeValidator);
+
+  if (oneOf) {
+    validationFunctions.push(typeValidatorOneOf);
+  }
+
+  return composeComplexValidation.apply(void 0, validationFunctions);
+};
+
+var getTypeValidator = function getTypeValidator(value, typeSchemaOptions, customHandler) {
   if (customHandler) {
     var unknownType = customHandler(value);
 
@@ -168,23 +199,23 @@ var getTypeValidator = function getTypeValidator(value, isRequired, customHandle
   }
 
   if (value instanceof Array || value === Array) {
-    return composeRequired(typeValidatorArray, isRequired);
+    return getComposedTypeValidator(typeValidatorArray, typeSchemaOptions, customHandler);
   }
 
   if (value instanceof String || value === String) {
-    return composeRequired(typeValidatorString, isRequired);
+    return getComposedTypeValidator(typeValidatorString, typeSchemaOptions, customHandler);
   }
 
   if (value instanceof Number || value === Number) {
-    return composeRequired(typeValidatorNumber, isRequired);
+    return getComposedTypeValidator(typeValidatorNumber, typeSchemaOptions, customHandler);
   }
 
   if (value instanceof Boolean || value === Boolean) {
-    return composeRequired(typeValidatorBoolean, isRequired);
+    return getComposedTypeValidator(typeValidatorBoolean, typeSchemaOptions, customHandler);
   }
 
   if (value instanceof Date || value === Date) {
-    return composeRequired(typeValidatorDate, isRequired);
+    return getComposedTypeValidator(typeValidatorDate, typeSchemaOptions, customHandler);
   }
 
   var _arr = Object.entries(customTypes);
@@ -198,37 +229,41 @@ var getTypeValidator = function getTypeValidator(value, isRequired, customHandle
       if (typeof customTypeValue.validate === "function") {
         // There is a custom validator function here, call it and use the return value
         // to make either success or failure messages
-        return composeRequired(typeValidatorCustom(customTypeValue.validate, customTypeKey), isRequired);
+        return getComposedTypeValidator(typeValidatorCustom(customTypeValue.validate, customTypeKey), typeSchemaOptions, customHandler);
       } // There is no custom validator function, use the custom type's type field and
       // use a built-in validator for it if any exists
 
 
-      var primitiveHandler = getTypeValidator(customTypeValue.type, isRequired, customHandler); // Check if a primitive handler was found and if so, return that
+      var primitiveHandler = getTypeValidator(customTypeValue.type, customTypeValue, customHandler); // Check if a primitive handler was found and if so, return that
 
       if (primitiveHandler) return primitiveHandler;
     }
   }
 
   if (value instanceof Object && !(value instanceof Function) || value === Object) {
-    return composeRequired(typeValidatorObject, isRequired);
+    return getComposedTypeValidator(typeValidatorObject, typeSchemaOptions, customHandler);
   }
 
   if (value instanceof Function || value === Function) {
-    return composeRequired(typeValidatorFunction, isRequired);
+    return getComposedTypeValidator(typeValidatorFunction, typeSchemaOptions, customHandler);
   } // No matching handlers were found, use an "Any" type validator (always returns true validation)
 
 
-  return composeRequired(typeValidatorAny, isRequired);
+  return getComposedTypeValidator(typeValidatorAny, typeSchemaOptions, customHandler);
 };
 
 var typeValidatorAny = function typeValidatorAny() {
   return validationSucceeded();
 };
 
-var typeValidatorRequired = function typeValidatorRequired(value, path) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
+var typeValidatorRequired = function typeValidatorRequired(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
     "throwOnFail": false
   };
+
+  if (!schema.required) {
+    return validationSucceeded();
+  }
 
   if (value === undefined || value === null) {
     if (options.throwOnFail) {
@@ -357,7 +392,7 @@ var typeValidatorArray = function typeValidatorArray(value, path, schema) {
   } else if (schema.elementType.type && schema.elementType.type.validate) {
     elementTypeValidator = schema.elementType.type.validate;
   } else {
-    elementTypeValidator = getTypeValidator(schema.elementType.type, schema.elementType.required);
+    elementTypeValidator = getTypeValidator(schema.elementType.type, schema.elementType);
   }
 
   var elementTypeValidationResult;
@@ -412,6 +447,22 @@ var typeValidatorObject = function typeValidatorObject(value, path, schema) {
   return validationSucceeded();
 };
 
+var typeValidatorOneOf = function typeValidatorOneOf(value, path, schema) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+    "throwOnFail": false
+  };
+
+  if (!schema.oneOf) {
+    return validationSucceeded();
+  }
+
+  if (schema.oneOf.indexOf(value) === -1) {
+    return validationFailedCustom(path, value, "Schema violation, expected \"".concat(path, "\" to be one of ").concat(String(JSON.stringify(schema.oneOf)), " but found ").concat(String(JSON.stringify(value)).substr(0, 10)), options);
+  }
+
+  return validationSucceeded();
+};
+
 var validateData = function validateData(path, schema, data) {
   var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
     "throwOnFail": false
@@ -454,7 +505,7 @@ var validateData = function validateData(path, schema, data) {
   }); // Get the value in the schema object at the path
 
   var fieldValue = pathGet(schema, furthestPath);
-  var fieldValidator = getTypeValidator(fieldValue.type);
+  var fieldValidator = getTypeValidator(fieldValue.type, fieldValue);
   var pathValue = pathGet(data, furthestPath, undefined, {
     "transformKey": function transformKey(data) {
       return data;

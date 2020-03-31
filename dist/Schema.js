@@ -163,7 +163,7 @@ function () {
 
           modelFieldValue = pathGet(currentModel, i); // Get the validator for this field
 
-          var _validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue.required, function (type) {
+          var _validator = getTypeValidator(schemaFieldValue.type, schemaFieldValue, function (type) {
             if (type instanceof Schema) {
               return type.validate;
             }
