@@ -35,8 +35,8 @@ const validationFailedCustom = (path, value, errorMessage, options = {"throwOnFa
 	};
 };
 
-const validationSucceeded = () => {
-	return {"valid": true};
+const validationSucceeded = (options = {}) => {
+	return {"valid": true, ...options};
 };
 
 const getTypeName = (value) => {
@@ -118,9 +118,20 @@ const getTypePrimitive = (value) => {
  */
 const compose = (...args) => {
 	return (...endCallArgs) => {
-		return args.map((item) => {
-			return item(...endCallArgs);
-		});
+		const resultArr = [];
+		
+		for (let i = 0; i < args.length; i++) {
+			const item = args[i];
+			const result = item(...endCallArgs);
+			
+			resultArr.push(result);
+			
+			if (result.shortCircuit) {
+				break;
+			}
+		}
+		
+		return resultArr;
 	};
 };
 
@@ -148,9 +159,7 @@ const getComposedTypeValidator = (valueTypeValidator, typeSchemaOptions, customH
 	
 	const validationFunctions = [];
 	
-	if (required) {
-		validationFunctions.push(typeValidatorRequired);
-	}
+	validationFunctions.push(typeValidatorRequired);
 	
 	validationFunctions.push(valueTypeValidator);
 	
@@ -163,10 +172,10 @@ const getComposedTypeValidator = (valueTypeValidator, typeSchemaOptions, customH
 
 const getTypeValidator = (value, typeSchemaOptions, customHandler) => {
 	if (customHandler) {
-		const unknownType = customHandler(value);
+		const unknownTypeValidatorFunction = customHandler(value);
 		
-		if (unknownType) {
-			return unknownType;
+		if (unknownTypeValidatorFunction) {
+			return getComposedTypeValidator(unknownTypeValidatorFunction, typeSchemaOptions);
 		}
 	}
 	
@@ -225,6 +234,16 @@ const typeValidatorAny = () => {
 
 const typeValidatorRequired = (value, path, schema, options = {"throwOnFail": false}) => {
 	if (!schema.required) {
+		// Check if we were given a field value... if we weren't
+		// then we can short-circuit any further validation for this
+		// field since it is not required
+		if (value === undefined || value === null) {
+			return validationSucceeded({"shortCircuit": true});
+		}
+		
+		// The value is not empty but we passed required check
+		// validation, return succeeded for this test but don't
+		// short-circuit further checks that might be required
 		return validationSucceeded();
 	}
 	

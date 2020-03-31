@@ -6,6 +6,8 @@ var _slicedToArray2 = _interopRequireDefault(require("@babel/runtime/helpers/sli
 
 var _typeof2 = _interopRequireDefault(require("@babel/runtime/helpers/typeof"));
 
+var _objectSpread2 = _interopRequireDefault(require("@babel/runtime/helpers/objectSpread"));
+
 var customTypes = require("./customTypes");
 
 var _require = require("@irrelon/path"),
@@ -52,9 +54,10 @@ var validationFailedCustom = function validationFailedCustom(path, value, errorM
 };
 
 var validationSucceeded = function validationSucceeded() {
-  return {
+  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  return (0, _objectSpread2.default)({
     "valid": true
-  };
+  }, options);
 };
 
 var getTypeName = function getTypeName(value) {
@@ -146,13 +149,19 @@ var compose = function compose() {
   }
 
   return function () {
-    for (var _len2 = arguments.length, endCallArgs = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-      endCallArgs[_key2] = arguments[_key2];
+    var resultArr = [];
+
+    for (var i = 0; i < args.length; i++) {
+      var item = args[i];
+      var result = item.apply(void 0, arguments);
+      resultArr.push(result);
+
+      if (result.shortCircuit) {
+        break;
+      }
     }
 
-    return args.map(function (item) {
-      return item.apply(void 0, endCallArgs);
-    });
+    return resultArr;
   };
 };
 
@@ -175,11 +184,7 @@ var getComposedTypeValidator = function getComposedTypeValidator(valueTypeValida
   var required = typeSchemaOptions.required,
       oneOf = typeSchemaOptions.oneOf;
   var validationFunctions = [];
-
-  if (required) {
-    validationFunctions.push(typeValidatorRequired);
-  }
-
+  validationFunctions.push(typeValidatorRequired);
   validationFunctions.push(valueTypeValidator);
 
   if (oneOf) {
@@ -191,10 +196,10 @@ var getComposedTypeValidator = function getComposedTypeValidator(valueTypeValida
 
 var getTypeValidator = function getTypeValidator(value, typeSchemaOptions, customHandler) {
   if (customHandler) {
-    var unknownType = customHandler(value);
+    var unknownTypeValidatorFunction = customHandler(value);
 
-    if (unknownType) {
-      return unknownType;
+    if (unknownTypeValidatorFunction) {
+      return getComposedTypeValidator(unknownTypeValidatorFunction, typeSchemaOptions);
     }
   }
 
@@ -262,6 +267,18 @@ var typeValidatorRequired = function typeValidatorRequired(value, path, schema) 
   };
 
   if (!schema.required) {
+    // Check if we were given a field value... if we weren't
+    // then we can short-circuit any further validation for this
+    // field since it is not required
+    if (value === undefined || value === null) {
+      return validationSucceeded({
+        "shortCircuit": true
+      });
+    } // The value is not empty but we passed required check
+    // validation, return succeeded for this test but don't
+    // short-circuit further checks that might be required
+
+
     return validationSucceeded();
   }
 

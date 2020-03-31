@@ -253,7 +253,7 @@ class Schema {
 		}
 		
 		if (isPrimitive(currentSchema)) {
-			const validator = getTypeValidator(currentSchema, false, (type) => {
+			const validator = getTypeValidator(currentSchema, {required: false}, (type) => {
 				if (type instanceof Schema) {
 					return type.validate;
 				}
@@ -413,13 +413,13 @@ const validateObjectDefinition = (fieldData, key) => {
 	// If we have a default value, make sure it validates against the field type
 	if (fieldData.default !== undefined) {
 		// Validate the default
-		const validator = getTypeValidator(fieldData.type, false, (type) => {
+		const validator = getTypeValidator(fieldData.type, fieldData, (type) => {
 			if (type instanceof Schema) {
 				return type.validate;
 			}
 		});
 		
-		const validatorResult = validator(fieldData.default);
+		const validatorResult = validator(fieldData.default, key, fieldData);
 		
 		if (!validatorResult.valid) {
 			throw new Error(`Schema definition invalid at path "${key}": Cannot specify a default value of type ${validatorResult.actualType} when the field type is ${validatorResult.expectedType}.`);

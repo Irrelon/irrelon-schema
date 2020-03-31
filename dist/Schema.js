@@ -124,7 +124,9 @@ function () {
       }
 
       if (isPrimitive(currentSchema)) {
-        var validator = getTypeValidator(currentSchema, false, function (type) {
+        var validator = getTypeValidator(currentSchema, {
+          required: false
+        }, function (type) {
           if (type instanceof Schema) {
             return type.validate;
           }
@@ -445,12 +447,12 @@ var validateObjectDefinition = function validateObjectDefinition(fieldData, key)
 
   if (fieldData.default !== undefined) {
     // Validate the default
-    var validator = getTypeValidator(fieldData.type, false, function (type) {
+    var validator = getTypeValidator(fieldData.type, fieldData, function (type) {
       if (type instanceof Schema) {
         return type.validate;
       }
     });
-    var validatorResult = validator(fieldData.default);
+    var validatorResult = validator(fieldData.default, key, fieldData);
 
     if (!validatorResult.valid) {
       throw new Error("Schema definition invalid at path \"".concat(key, "\": Cannot specify a default value of type ").concat(validatorResult.actualType, " when the field type is ").concat(validatorResult.expectedType, "."));

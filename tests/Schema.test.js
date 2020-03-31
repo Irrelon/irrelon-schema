@@ -221,6 +221,56 @@ describe ("Schema", () => {
 	});
 	
 	describe("validate()", () => {
+		it("Doesn't try to validate fields if they are not required and have sub-schema that is", () => {
+			expect(12);
+			
+			const schema = new Schema({
+				"metaData": {
+					"type": new Schema({
+						"test": {
+							"type": Boolean,
+							"required": true
+						}
+					}),
+					"required": false
+				}
+			});
+			
+			const result = schema.validate({
+				"metaData": undefined
+			});
+			
+			const result2 = schema.validate({
+			
+			});
+			
+			const result3 = schema.validate({
+				"metaData": "foo"
+			});
+			
+			const result4 = schema.validate({
+				"metaData": {
+					"test": false
+				}
+			});
+			
+			assert.strictEqual(typeof result, "object", "The result data is an object");
+			assert.strictEqual(typeof result.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result.valid, true, "The validation result was correct");
+			
+			assert.strictEqual(typeof result2, "object", "The result data is an object");
+			assert.strictEqual(typeof result2.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result2.valid, true, "The validation result was correct");
+			
+			assert.strictEqual(typeof result3, "object", "The result data is an object");
+			assert.strictEqual(typeof result3.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result3.valid, false, "The validation result was correct");
+			
+			assert.strictEqual(typeof result4, "object", "The result data is an object");
+			assert.strictEqual(typeof result4.valid, "boolean", "The result.valid data is a boolean");
+			assert.strictEqual(result4.valid, true, "The validation result was correct");
+		});
+		
 		it("Can correctly validate positive oneOf clause in schema", () => {
 			const schema = new Schema({
 				"name": {
