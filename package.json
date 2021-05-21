@@ -1,6 +1,6 @@
 {
   "name": "@irrelon/schema",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "A JSON schema validation module to give you realtime data test coverage.",
   "main": "./index.js",
   "scripts": {
@@ -31,5 +31,8 @@
     "@irrelon/path": "^2.1.1",
     "@irrelon/emitter": "^3.0.0"
   },
-  "private": false
+  "private": false,
+  "repository": {
+    "git": "git@github.com:Irrelon/irrelon-schema.git"
+  }
 }
