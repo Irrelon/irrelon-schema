@@ -2,11 +2,11 @@
 
 var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
 
-var _slicedToArray2 = _interopRequireDefault(require("@babel/runtime/helpers/slicedToArray"));
-
 var _typeof2 = _interopRequireDefault(require("@babel/runtime/helpers/typeof"));
 
 var _objectSpread2 = _interopRequireDefault(require("@babel/runtime/helpers/objectSpread"));
+
+var _slicedToArray2 = _interopRequireDefault(require("@babel/runtime/helpers/slicedToArray"));
 
 var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
 
@@ -49,6 +49,61 @@ function () {
 
     (0, _classCallCheck2.default)(this, Schema);
     (0, _defineProperty2.default)(this, "cast", function (model) {
+      var schema = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+      if (schema === null) schema = _this;
+      if (!schema) throw new Error("No schema passed!");
+      Object.entries(model).forEach(function (_ref) {
+        var _ref2 = (0, _slicedToArray2.default)(_ref, 2),
+            key = _ref2[0],
+            val = _ref2[1];
+
+        console.log("Processing field", key);
+        var schemaForField = getSchemaField(schema, key);
+        console.log("Schema for field", key, "is", schemaForField);
+        var castType;
+
+        if (isSchemaInstance(schemaForField)) {
+          console.log("Field type is a schema instance"); // Schema type, is parent of some other type
+
+          var schemaForFieldType = schemaForField.type.normalised();
+          return pathSet(model, key, _this.cast(model[key], schemaForFieldType));
+        }
+
+        if (isObjectDefinition(schemaForField)) {
+          if (schemaForField.type === Array) {
+            console.log("Field type is an object definition of type: Array");
+            model[key].forEach(function (item, index) {
+              model[key][index] = _this.cast(item, schemaForField.elementType);
+            });
+            return model;
+          }
+
+          console.log("Field type is an object definition of type:", schemaForField.type);
+          return pathSet(model, key, _this.cast(model[key], schemaForField.type));
+        } // Non-schema type (leaf node)
+
+
+        if (schemaForField === Array) {
+          console.log("Field type is an Array");
+          return pathSet(model, key, _this.cast(model[key], schemaForField.elementType));
+        } else if (isCustomType(schemaForField)) {
+          if (schemaForField.type === "Any") {
+            console.log("Field type is a custom: ANY");
+
+            castType = function castType(data) {
+              return data;
+            };
+          } else {
+            console.log("Field type is a custom:", schemaForField.type.name);
+            castType = schemaForField.type;
+          }
+        } else {
+          console.log("Field type is something else?", schemaForField);
+          castType = schemaForField;
+        }
+
+        pathSet(model, key, castType(pathGet(model, key)));
+      });
       return model;
     });
     (0, _defineProperty2.default)(this, "add", function (obj) {
@@ -235,9 +290,15 @@ function () {
 
   (0, _createClass2.default)(Schema, [{
     key: "debugLog",
-    value: function debugLog(msg) {
+    value: function debugLog() {
       if (this._options.debug) {
-        console.log("applyModels :: ".concat(msg));
+        var _console;
+
+        for (var _len = arguments.length, msg = new Array(_len), _key = 0; _key < _len; _key++) {
+          msg[_key] = arguments[_key];
+        }
+
+        (_console = console).log.apply(_console, ["applyModels :: "].concat(msg));
       }
     }
     /**
@@ -272,8 +333,8 @@ function () {
     value: function helper(id, model) {
       var _this$_helpers;
 
-      for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-        args[_key - 2] = arguments[_key];
+      for (var _len2 = arguments.length, args = new Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+        args[_key2 - 2] = arguments[_key2];
       }
 
       return (_this$_helpers = this._helpers)[id].apply(_this$_helpers, [model].concat(args));
@@ -358,6 +419,9 @@ function () {
      * Casts a model to the correct types if possible.
      * @param {Object|Array} model The model to cast against the
      * schema.
+     * @param {Schema|Object} [schema=null] Optional schema to cast
+     * against. Usually you do not want to pass this option as it
+     * is primarily used internally when cast() is called recursively.
      * @returns {Object|Array} The new model, with values cast
      * to the correct types based on the schema definition.
      */
@@ -380,10 +444,10 @@ function () {
       // own definition (we don't want infinite recursion!).
 
       visited.push(this);
-      Object.entries(def).map(function (_ref) {
-        var _ref2 = (0, _slicedToArray2.default)(_ref, 2),
-            key = _ref2[0],
-            val = _ref2[1];
+      Object.entries(def).map(function (_ref3) {
+        var _ref4 = (0, _slicedToArray2.default)(_ref3, 2),
+            key = _ref4[0],
+            val = _ref4[1];
 
         flatten(val, compoundKey(parentPath, key), values, visited);
       });
@@ -393,17 +457,17 @@ function () {
   return Schema;
 }();
 
-Object.entries(customTypes).map(function (_ref3) {
-  var _ref4 = (0, _slicedToArray2.default)(_ref3, 2),
-      key = _ref4[0],
-      value = _ref4[1];
+Object.entries(customTypes).map(function (_ref5) {
+  var _ref6 = (0, _slicedToArray2.default)(_ref5, 2),
+      key = _ref6[0],
+      value = _ref6[1];
 
   Schema[key] = value;
-});
+}); // Different from join because we don't want to include blank strings
 
 var compoundKey = function compoundKey() {
-  for (var _len2 = arguments.length, keys = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-    keys[_key2] = arguments[_key2];
+  for (var _len3 = arguments.length, keys = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+    keys[_key3] = arguments[_key3];
   }
 
   return keys.reduce(function (finalKey, key) {
@@ -552,10 +616,10 @@ var getTypePrimitiveName = function getTypePrimitiveName(val) {
 };
 
 var simplify = function simplify(normalisedSchema) {
-  return Object.entries(normalisedSchema).reduce(function (obj, _ref5) {
-    var _ref6 = (0, _slicedToArray2.default)(_ref5, 2),
-        key = _ref6[0],
-        val = _ref6[1];
+  return Object.entries(normalisedSchema).reduce(function (obj, _ref7) {
+    var _ref8 = (0, _slicedToArray2.default)(_ref7, 2),
+        key = _ref8[0],
+        val = _ref8[1];
 
     obj[key] = getTypePrimitiveName(val.type);
     return obj;
@@ -566,10 +630,10 @@ var normalise = function normalise(def) {
   var values = {};
   var visited = [];
   var schemaDefinition = def.definition();
-  Object.entries(schemaDefinition).map(function (_ref7) {
-    var _ref8 = (0, _slicedToArray2.default)(_ref7, 2),
-        key = _ref8[0],
-        val = _ref8[1];
+  Object.entries(schemaDefinition).map(function (_ref9) {
+    var _ref10 = (0, _slicedToArray2.default)(_ref9, 2),
+        key = _ref10[0],
+        val = _ref10[1];
 
     values[key] = normaliseField(val, key, visited);
   });
@@ -652,6 +716,35 @@ var normaliseField = function normaliseField(field, key) {
 
 
   throw new Error("Unable to determine what to do with the field data at \"".concat(key, "\". We don't recognise the format! ").concat(JSON.stringify(field)));
+};
+
+var getSchemaField = function getSchemaField(schema, field) {
+  if (isSchemaInstance(schema)) {
+    var schemaDef = schema.normalised();
+    return schemaDef[field];
+  }
+
+  if (isObjectDefinition(schema)) {
+    if (schema.type === Array) {
+      return getSchemaField(schema.elementType, field);
+    }
+
+    return schema[field];
+  }
+
+  if (isCustomType(schema)) {
+    if (schema.type === "Any") return function (data) {
+      return data;
+    };
+    return schema.type;
+  }
+
+  if (isPrimitive(schema)) return schema;
+  console.log(JSON.stringify(schema, function (key, val) {
+    if (val === Array) return "Array";
+    return val;
+  }));
+  throw new Error("Unhandled schema type in getSchemaField!");
 }; // Give Schema's prototype the event emitter methods
 // and functionality
 

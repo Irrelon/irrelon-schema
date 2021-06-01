@@ -153,10 +153,64 @@ class Schema {
 	 * Casts a model to the correct types if possible.
 	 * @param {Object|Array} model The model to cast against the
 	 * schema.
+	 * @param {Schema|Object} [schema=null] Optional schema to cast
+	 * against. Usually you do not want to pass this option as it
+	 * is primarily used internally when cast() is called recursively.
 	 * @returns {Object|Array} The new model, with values cast
 	 * to the correct types based on the schema definition.
 	 */
-	cast = (model) => {
+	cast = (model, schema= null) => {
+		if (schema === null) schema = this;
+		if (!schema) throw new Error("No schema passed!");
+
+		Object.entries(model).forEach(([key, val]) => {
+			console.log("Processing field", key);
+			const schemaForField = getSchemaField(schema, key);
+			console.log("Schema for field", key, "is", schemaForField);
+			let castType;
+
+			if (isSchemaInstance(schemaForField)) {
+				console.log("Field type is a schema instance");
+				// Schema type, is parent of some other type
+				const schemaForFieldType = schemaForField.type.normalised();
+
+				return pathSet(model, key, this.cast(model[key], schemaForFieldType));
+			}
+
+			if (isObjectDefinition(schemaForField)) {
+				if (schemaForField.type === Array) {
+					console.log("Field type is an object definition of type: Array");
+					model[key].forEach((item, index) => {
+						model[key][index] = this.cast(item, schemaForField.elementType);
+					});
+
+					return model;
+				}
+
+				console.log("Field type is an object definition of type:", schemaForField.type);
+				return pathSet(model, key, this.cast(model[key], schemaForField.type));
+			}
+
+			// Non-schema type (leaf node)
+			if (schemaForField === Array) {
+				console.log("Field type is an Array");
+				return pathSet(model, key, this.cast(model[key], schemaForField.elementType));
+			} else if (isCustomType(schemaForField)) {
+				if (schemaForField.type === "Any") {
+					console.log("Field type is a custom: ANY");
+					castType = (data) => data;
+				} else {
+					console.log("Field type is a custom:", schemaForField.type.name);
+					castType = schemaForField.type;
+				}
+			} else {
+				console.log("Field type is something else?", schemaForField);
+				castType = schemaForField;
+			}
+
+			pathSet(model, key, castType(pathGet(model, key)));
+		});
+
 		return model;
 	};
 
@@ -369,6 +423,7 @@ Object.entries(customTypes).map(([key, value]) => {
 	Schema[key] = value;
 });
 
+// Different from join because we don't want to include blank strings
 const compoundKey = (...keys) => {
 	return keys.reduce((finalKey, key) => {
 		if (finalKey) {
@@ -613,6 +668,35 @@ const normaliseField = (field, key, visited = []) => {
 
 	// We don't know how to handle this field information!
 	throw new Error(`Unable to determine what to do with the field data at "${key}". We don't recognise the format! ${JSON.stringify(field)}`);
+};
+
+const getSchemaField = (schema, field) => {
+	if (isSchemaInstance(schema)) {
+		const schemaDef = schema.normalised();
+		return schemaDef[field];
+	}
+
+	if (isObjectDefinition(schema)) {
+		if (schema.type === Array) {
+			return getSchemaField(schema.elementType, field);
+		}
+
+		return schema[field];
+	}
+
+	if (isCustomType(schema)) {
+		if (schema.type === "Any") return (data) => data;
+		return schema.type;
+	}
+
+	if (isPrimitive(schema)) return schema;
+
+	console.log(JSON.stringify(schema, (key, val) => {
+		if (val === Array) return "Array";
+		return val;
+	}));
+
+	throw new Error("Unhandled schema type in getSchemaField!");
 };
 
 // Give Schema's prototype the event emitter methods
