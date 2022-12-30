@@ -20,7 +20,7 @@
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.0.0",
     "eslint-config-irrelon": "^1.0.9",
-    "mocha": "^6.0.2",
+    "mocha": "^10.2.0",
     "mocha-expect": "^1.0.2",
     "nyc": "^13.3.0",
     "rimraf": "^2.6.2"
